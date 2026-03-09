@@ -83,27 +83,37 @@ def clasificar_noticias(titulos_json):
     titulos = json.loads(titulos_json)
     lista = "\n".join([f"{i+1}. {t}" for i, t in enumerate(titulos)])
     
-    prompt = f"""Eres un analista de riesgo social para IAMGOLD Perú, empresa minera que opera 
-el proyecto El Reducto en Cajamarca, Perú.
+    prompt = f"""Clasifica cada noticia para una empresa minera en Cajamarca, Perú.
+Responde ÚNICAMENTE con un JSON array, sin texto adicional, sin markdown, sin explicaciones.
+Usa exactamente estos valores: "ALTO", "MEDIO" o "BAJO".
 
-Clasifica cada noticia con exactamente uno de estos niveles:
-- ALTO: conflicto social, protesta, paro, bloqueo, violencia, oposición activa a minería
-- MEDIO: preocupación ambiental, minería ilegal, tensión social, demandas judiciales
-- BAJO: noticia neutral, producción, inversión, desarrollo positivo
+Criterios:
+- ALTO: protesta, paro, bloqueo, conflicto, violencia, oposición a minería
+- MEDIO: minería ilegal, contaminación, tensión, demanda judicial
+- BAJO: producción, inversión, noticias neutrales o positivas
 
-Responde SOLO con un JSON array en este formato exacto, sin explicaciones:
-["ALTO","BAJO","MEDIO",...]
+Ejemplo de respuesta esperada: ["BAJO","ALTO","MEDIO"]
 
-Noticias:
-{lista}"""
+Noticias a clasificar:
+{lista}
 
-    resultado = groq_request(prompt, max_tokens=500)
+Responde SOLO con el array JSON:"""
+
+    resultado = groq_request(prompt, max_tokens=600)
+    
     try:
+        # Limpiar respuesta
+        resultado = resultado.strip()
+        resultado = resultado.replace("```json", "").replace("```", "").strip()
+        # Encontrar el array
+        inicio = resultado.find('[')
+        fin = resultado.rfind(']') + 1
+        if inicio != -1 and fin > inicio:
+            resultado = resultado[inicio:fin]
         clasificaciones = json.loads(resultado)
         return clasificaciones
     except:
         return ["BAJO"] * len(titulos)
-
 # ---- OBTENER NOTICIAS ----
 with st.spinner("📡 Obteniendo noticias recientes..."):
     df = obtener_noticias()
