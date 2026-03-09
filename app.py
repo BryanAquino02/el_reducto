@@ -81,56 +81,56 @@ def obtener_noticias():
 @st.cache_data(ttl=86400)
 def clasificar_noticias(titulos_json):
     titulos = json.loads(titulos_json)
-    lista = "\n".join([f"{i+1}. {t}" for i, t in enumerate(titulos)])
-    
-    prompt = f"""Clasifica cada noticia para una empresa minera en Cajamarca, Perú.
-Responde ÚNICAMENTE con un JSON array, sin texto adicional, sin markdown, sin explicaciones.
-Usa exactamente estos valores: "ALTO", "MEDIO" o "BAJO".
+    todas = []
 
-Criterios:
-- ALTO: protesta, paro, bloqueo, conflicto, violencia, oposición a minería
-- MEDIO: minería ilegal, contaminación, tensión, demanda judicial
-- BAJO: producción, inversión, noticias neutrales o positivas
+    for i in range(0, len(titulos), 10):
+        lote = titulos[i:i+10]
+        lista = "\n".join([f"{j+1}. {t}" for j, t in enumerate(lote)])
 
-Ejemplo de respuesta esperada: ["BAJO","ALTO","MEDIO"]
+        prompt = f"""Clasifica estas noticias para una empresa minera en Cajamarca Perú.
+Responde SOLO con un array JSON. Sin texto extra. Sin markdown.
+Valores posibles: "ALTO", "MEDIO", "BAJO"
 
-Noticias a clasificar:
+ALTO: protesta, paro, bloqueo, conflicto, violencia, oposición a minería
+MEDIO: minería ilegal, contaminación, tensión, demanda judicial
+BAJO: producción, inversión, noticias neutras o positivas
+
+Noticias:
 {lista}
 
-Responde SOLO con el array JSON:"""
+Array JSON:"""
 
-    resultado = groq_request(prompt, max_tokens=600)
-    
-    try:
-        # Limpiar respuesta
-        resultado = resultado.strip()
-        resultado = resultado.replace("```json", "").replace("```", "").strip()
-        # Encontrar el array
-        inicio = resultado.find('[')
-        fin = resultado.rfind(']') + 1
-        if inicio != -1 and fin > inicio:
-            resultado = resultado[inicio:fin]
-        clasificaciones = json.loads(resultado)
-        return clasificaciones
-    except:
-        return ["BAJO"] * len(titulos)
+        resultado = groq_request(prompt, max_tokens=200)
+
+        try:
+            resultado = resultado.strip()
+            resultado = resultado.replace("```json", "").replace("```", "").strip()
+            inicio = resultado.find('[')
+            fin = resultado.rfind(']') + 1
+            lote_clasificado = json.loads(resultado[inicio:fin])
+            todas.extend(lote_clasificado)
+        except:
+            todas.extend(["BAJO"] * len(lote))
+
+    return todas
+
 # ---- OBTENER NOTICIAS ----
 with st.spinner("📡 Obteniendo noticias recientes..."):
     df = obtener_noticias()
 
-# ---- CLASIFICAR CON GROQ (1 sola llamada) ----
+# ---- CLASIFICAR CON GROQ ----
 with st.spinner("🤖 Clasificando riesgo con IA..."):
     titulos_json = json.dumps(df['titulo'].tolist())
     clasificaciones = clasificar_noticias(titulos_json)
-    
+
     if len(clasificaciones) == len(df):
         df['riesgo'] = clasificaciones
     else:
         df['riesgo'] = "BAJO"
-    
+
     df['riesgo'] = df['riesgo'].map({
         'ALTO': '🔴 ALTO',
-        'MEDIO': '🟡 MEDIO', 
+        'MEDIO': '🟡 MEDIO',
         'BAJO': '🟢 BAJO'
     }).fillna('🟢 BAJO')
 
@@ -180,7 +180,7 @@ else:
             st.write(f"**Fecha:** {row['fecha']}")
             if st.button("🤖 Analizar impacto para IAMGOLD", key=f"btn_{row['titulo'][:20]}"):
                 with st.spinner("Generando análisis..."):
-                    explicacion = groq_request(f"""Eres un analista de riesgo social para IAMGOLD Perú, 
+                    explicacion = groq_request(f"""Eres un analista de riesgo social para IAMGOLD Perú,
 empresa minera canadiense que opera el proyecto de exploración El Reducto en Cajamarca.
 Analiza en 2-3 oraciones por qué esta noticia representa un riesgo para IAMGOLD. Sé directo.
 Noticia: {row['titulo']}
