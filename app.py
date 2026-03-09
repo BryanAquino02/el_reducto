@@ -1,19 +1,20 @@
 
+%%writefile app.py
+
 import streamlit as st
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
-from transformers import MarianMTModel, MarianTokenizer, pipeline
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 import plotly.express as px
-import time
+import json
 
 NEWS_API_KEY = st.secrets["NEWS_API_KEY"]
 GROQ_KEY = st.secrets["GROQ_KEY"]
 
 st.set_page_config(
-    page_title="Monitor de Conflictividad Social - IAMGOLD Perú",
+    page_title="Monitor de Conflictividad - IAMGOLD Perú",
     page_icon="⛏️",
     layout="wide"
 )
@@ -22,64 +23,24 @@ st.title("⛏️ Monitor de Conflictividad Social")
 st.subheader("Proyecto El Reducto — Cajamarca | IAMGOLD Perú")
 st.markdown("---")
 
-@st.cache_resource
-def cargar_modelos():
-    tok = MarianTokenizer.from_pretrained("Helsinki-NLP/opus-mt-es-en")
-    mod = MarianMTModel.from_pretrained("Helsinki-NLP/opus-mt-es-en")
-    clf = pipeline("zero-shot-classification", model="cross-encoder/nli-MiniLM2-L6-H768")
-    return tok, mod, clf
-
-with st.spinner("Cargando modelos de IA..."):
-    tok, mod, clf = cargar_modelos()
-
-def traducir(texto):
+def groq_request(prompt, max_tokens=1000):
     try:
-        tokens = tok([texto[:200]], return_tensors="pt", padding=True)
-        translated = mod.generate(**tokens)
-        return tok.decode(translated[0], skip_special_tokens=True)
-    except:
-        return texto
-
-etiquetas = [
-    "social conflict, protest, strike, violence, opposition to mining",
-    "environmental concern, illegal mining, contamination, community resistance",
-    "neutral news, production, investment, positive mining development"
-]
-
-def clasificar(titulo):
-    traduccion = traducir(titulo)
-    resultado = clf(traduccion, etiquetas)
-    top = resultado['labels'][0]
-    if "social conflict" in top:
-        return "🔴 ALTO"
-    elif "environmental" in top:
-        return "🟡 MEDIO"
-    else:
-        return "🟢 BAJO"
-
-def explicar_alerta(titulo, fecha, fuente):
-    try:
-        url = "https://api.groq.com/openai/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {GROQ_KEY}",
-            "Content-Type": "application/json"
-        }
-        prompt = f"""Eres un analista de riesgo social para IAMGOLD Perú, empresa minera canadiense 
-que opera el proyecto de exploración El Reducto en Cajamarca.
-Analiza esta noticia y explica en 2-3 oraciones por qué representa un riesgo 
-para IAMGOLD. Sé directo y específico.
-Noticia: {titulo}
-Fecha: {fecha}
-Fuente: {fuente}
-Responde SOLO con la explicación, sin títulos ni formato."""
-        response = requests.post(url, headers=headers, json={
-            "model": "llama-3.1-8b-instant",
-            "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": 200
-        })
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {GROQ_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.1-8b-instant",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": max_tokens
+            },
+            timeout=30
+        )
         return response.json()['choices'][0]['message']['content']
     except:
-        return "No se pudo generar explicación."
+        return None
 
 @st.cache_data(ttl=86400)
 def obtener_noticias():
@@ -118,22 +79,64 @@ def obtener_noticias():
     df = pd.DataFrame(todos).drop_duplicates(subset='titulo').reset_index(drop=True)
     return df.sort_values('fecha', ascending=False).reset_index(drop=True)
 
-with st.spinner("Obteniendo noticias recientes..."):
+@st.cache_data(ttl=86400)
+def clasificar_noticias(titulos_json):
+    titulos = json.loads(titulos_json)
+    lista = "\n".join([f"{i+1}. {t}" for i, t in enumerate(titulos)])
+    
+    prompt = f"""Eres un analista de riesgo social para IAMGOLD Perú, empresa minera que opera 
+el proyecto El Reducto en Cajamarca, Perú.
+
+Clasifica cada noticia con exactamente uno de estos niveles:
+- ALTO: conflicto social, protesta, paro, bloqueo, violencia, oposición activa a minería
+- MEDIO: preocupación ambiental, minería ilegal, tensión social, demandas judiciales
+- BAJO: noticia neutral, producción, inversión, desarrollo positivo
+
+Responde SOLO con un JSON array en este formato exacto, sin explicaciones:
+["ALTO","BAJO","MEDIO",...]
+
+Noticias:
+{lista}"""
+
+    resultado = groq_request(prompt, max_tokens=500)
+    try:
+        clasificaciones = json.loads(resultado)
+        return clasificaciones
+    except:
+        return ["BAJO"] * len(titulos)
+
+# ---- OBTENER NOTICIAS ----
+with st.spinner("📡 Obteniendo noticias recientes..."):
     df = obtener_noticias()
 
-st.info(f"📰 {len(df)} noticias analizadas | Período: últimos 6 meses | Actualización: cada 24h")
+# ---- CLASIFICAR CON GROQ (1 sola llamada) ----
+with st.spinner("🤖 Clasificando riesgo con IA..."):
+    titulos_json = json.dumps(df['titulo'].tolist())
+    clasificaciones = clasificar_noticias(titulos_json)
+    
+    if len(clasificaciones) == len(df):
+        df['riesgo'] = clasificaciones
+    else:
+        df['riesgo'] = "BAJO"
+    
+    df['riesgo'] = df['riesgo'].map({
+        'ALTO': '🔴 ALTO',
+        'MEDIO': '🟡 MEDIO', 
+        'BAJO': '🟢 BAJO'
+    }).fillna('🟢 BAJO')
 
-with st.spinner("Analizando riesgo con IA..."):
-    df['riesgo'] = df['titulo'].apply(clasificar)
+st.info(f"📰 {len(df)} noticias | Últimos 6 meses | Actualización: cada 24h")
 
+# ---- METRICAS ----
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Noticias", len(df))
-col2.metric("🔴 Alto Riesgo", len(df[df['riesgo']=='🔴 ALTO']))
-col3.metric("🟡 Medio Riesgo", len(df[df['riesgo']=='🟡 MEDIO']))
-col4.metric("🟢 Bajo Riesgo", len(df[df['riesgo']=='🟢 BAJO']))
+col1.metric("Total", len(df))
+col2.metric("🔴 Alto", len(df[df['riesgo']=='🔴 ALTO']))
+col3.metric("🟡 Medio", len(df[df['riesgo']=='🟡 MEDIO']))
+col4.metric("🟢 Bajo", len(df[df['riesgo']=='🟢 BAJO']))
 
 st.markdown("---")
 
+# ---- GRAFICOS ----
 colores = {'🔴 ALTO': '#e74c3c', '🟡 MEDIO': '#f39c12', '🟢 BAJO': '#2ecc71'}
 col1, col2 = st.columns(2)
 
@@ -141,7 +144,7 @@ with col1:
     conteo = df['riesgo'].value_counts().reset_index()
     conteo.columns = ['nivel', 'cantidad']
     fig1 = px.bar(conteo, x='nivel', y='cantidad', color='nivel',
-        color_discrete_map=colores, title='Distribucion de Riesgo', text='cantidad')
+        color_discrete_map=colores, title='Distribución de Riesgo', text='cantidad')
     fig1.update_layout(showlegend=False, plot_bgcolor='white')
     st.plotly_chart(fig1, use_container_width=True)
 
@@ -155,26 +158,38 @@ with col2:
 
 st.markdown("---")
 
+# ---- ALERTAS ALTO RIESGO ----
 st.subheader("🚨 Alertas de Alto Riesgo")
 df_alto = df[df['riesgo']=='🔴 ALTO'].sort_values('fecha', ascending=False)
 
-for _, row in df_alto.iterrows():
-    with st.expander(f"🔴 [{row['fecha']}] {row['titulo'][:80]}"):
-        st.write(f"**Fuente:** {row['fuente']}")
-        st.write(f"**Fecha:** {row['fecha']}")
-        if st.button(f"Generar análisis IA", key=row['titulo'][:30]):
-            with st.spinner("Analizando con IA..."):
-                explicacion = explicar_alerta(row['titulo'], row['fecha'], row['fuente'])
-                st.warning(f"🤖 **Análisis IA:** {explicacion}")
-        if row['url']:
-            st.markdown(f"[Ver noticia completa]({row['url']})")
+if len(df_alto) == 0:
+    st.success("No hay alertas de alto riesgo actualmente.")
+else:
+    for _, row in df_alto.iterrows():
+        with st.expander(f"🔴 [{row['fecha']}] {row['titulo'][:80]}"):
+            st.write(f"**Fuente:** {row['fuente']}")
+            st.write(f"**Fecha:** {row['fecha']}")
+            if st.button("🤖 Analizar impacto para IAMGOLD", key=f"btn_{row['titulo'][:20]}"):
+                with st.spinner("Generando análisis..."):
+                    explicacion = groq_request(f"""Eres un analista de riesgo social para IAMGOLD Perú, 
+empresa minera canadiense que opera el proyecto de exploración El Reducto en Cajamarca.
+Analiza en 2-3 oraciones por qué esta noticia representa un riesgo para IAMGOLD. Sé directo.
+Noticia: {row['titulo']}
+Fecha: {row['fecha']}
+Fuente: {row['fuente']}
+Responde SOLO con la explicación.""")
+                    if explicacion:
+                        st.warning(f"⚠️ {explicacion}")
+            if row['url']:
+                st.markdown(f"[🔗 Ver noticia completa]({row['url']})")
 
 st.markdown("---")
 
+# ---- TODAS LAS NOTICIAS ----
 st.subheader("📋 Todas las Noticias")
 filtro = st.selectbox("Filtrar por riesgo:", ["Todos", "🔴 ALTO", "🟡 MEDIO", "🟢 BAJO"])
-if filtro != "Todos":
-    df_mostrar = df[df['riesgo'] == filtro]
-else:
-    df_mostrar = df
-st.dataframe(df_mostrar[['fecha', 'riesgo', 'fuente', 'titulo']].reset_index(drop=True), use_container_width=True)
+df_mostrar = df[df['riesgo'] == filtro] if filtro != "Todos" else df
+st.dataframe(
+    df_mostrar[['fecha', 'riesgo', 'fuente', 'titulo']].reset_index(drop=True),
+    use_container_width=True
+)
