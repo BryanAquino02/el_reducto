@@ -9,8 +9,8 @@ from email.utils import parsedate_to_datetime
 import plotly.express as px
 import time
 
-NEWS_API_KEY = "bcfd4c2db9b941159e85b11090234f89"
-GROQ_KEY = "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"
+NEWS_API_KEY = st.secrets["NEWS_API_KEY"]
+GROQ_KEY = st.secrets["GROQ_KEY"]
 
 st.set_page_config(
     page_title="Monitor de Conflictividad Social - IAMGOLD Perú",
