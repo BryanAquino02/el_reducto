@@ -1,10 +1,6 @@
-streamlit
-requests
-pandas
-beautifulsoup4
-lxml
-transformers
-torch
-plotly
-sentencepiece
-sacremoses
+streamlit==1.55.0
+pandas==2.3.3
+plotly==6.6.0
+beautifulsoup4==4.14.3
+requests==2.32.5
+lxml==6.0.2
