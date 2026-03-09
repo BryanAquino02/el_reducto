@@ -128,11 +128,16 @@ with st.spinner("🤖 Clasificando riesgo con IA..."):
     else:
         df['riesgo'] = "BAJO"
 
-    df['riesgo'] = df['riesgo'].map({
-        'ALTO': '🔴 ALTO',
-        'MEDIO': '🟡 MEDIO',
-        'BAJO': '🟢 BAJO'
-    }).fillna('🟢 BAJO')
+    def mapear_riesgo(valor):
+        valor = str(valor).upper().strip()
+        if 'ALTO' in valor:
+            return '🔴 ALTO'
+        elif 'MEDIO' in valor:
+            return '🟡 MEDIO'
+        else:
+            return '🟢 BAJO'
+    
+    df['riesgo'] = df['riesgo'].apply(mapear_riesgo)
 
 st.info(f"📰 {len(df)} noticias | Últimos 6 meses | Actualización: cada 24h")
 
