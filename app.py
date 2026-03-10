@@ -305,10 +305,39 @@ def groq_call(prompt, system=None, max_tokens=600):
 #  FETCH & CLASSIFY
 # ══════════════════════════════════════════════════════════════════════════════
 QUERIES = [
-    "mineria+Cajamarca+conflicto", "mineria+Cajamarca+comunidades",
-    "protesta+minera+Cajamarca",   "IAMGOLD+Peru",
-    "mineria+Peru+conflicto",      "conflictos+mineros+Peru",
-    "inversion+minera+Peru",       "protesta+minera+Peru",
+    # Cajamarca — conflictos y comunidades
+    "mineria+Cajamarca+conflicto",
+    "mineria+Cajamarca+comunidades",
+    "protesta+minera+Cajamarca",
+    "huelga+minera+Cajamarca",
+    "Conga+mina+Cajamarca",
+    "rondas+campesinas+mineria",
+
+    # IAMGOLD y empresas específicas
+    "IAMGOLD+Peru",
+    "IAMGOLD+Cajamarca",
+    "Yanacocha+Cajamarca",
+    "minera+Buenaventura+Peru",
+    "Southern+Copper+Peru",
+
+    # Conflictos a nivel nacional
+    "conflictos+mineros+Peru",
+    "paro+minero+Peru",
+    "bloqueo+minero+Peru",
+    "comunidades+mineria+Peru",
+    "conflicto+socioambiental+Peru",
+
+    # Regulación y política
+    "MINEM+Peru+mineria",
+    "OEFA+fiscalizacion+mineria",
+    "inversion+minera+Peru",
+    "concesion+minera+Peru",
+
+    # Regiones mineras clave
+    "mineria+La+Libertad+Peru",
+    "mineria+Ancash+Peru",
+    "mineria+Apurimac+Peru",
+    "mineria+Arequipa+Peru",
 ]
 
 def fetch_rss(fecha_limite):
@@ -340,7 +369,7 @@ def fetch_rss(fecha_limite):
 
 def classify(df):
     todos = []
-    for i in range(0, min(len(df), 60), 20):
+    for i in range(0, min(len(df), 200), 20):
         lote  = df['titulo'].tolist()[i:i+20]
         lista = "\n".join([f"{j+1}. {x}" for j, x in enumerate(lote)])
         res   = groq_call(
