@@ -1,531 +1,1224 @@
-import streamlit as st
-import requests
-import pandas as pd
+"""
+El Reducto — Inteligencia Minera
+Monitor de noticias mineras del Perú con clasificación automática por riesgo y análisis de IA.
+"""
+
 from bs4 import BeautifulSoup
+from collections import Counter
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
-import plotly.graph_objects as go
-import json, os, time, logging, re
-from collections import Counter
+import os
+import re
+import time
 
-logging.basicConfig(level=logging.WARNING)
-GROQ_KEY = st.secrets["GROQ_KEY"]
+import pandas as pd
+import plotly.graph_objects as go
+import requests
+import streamlit as st
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONFIG
+# ─────────────────────────────────────────────────────────────────────────────
+
+GROQ_KEY = st.secrets.get("GROQ_API_KEY", "")
 DB_PATH  = os.path.join(os.path.dirname(os.path.abspath(__file__)), "news_db_v5.json")
 
-st.set_page_config(page_title="El Reducto", page_icon="⛏️", layout="centered", initial_sidebar_state="collapsed")
+RSS_QUERIES = [
+    "mineria+Cajamarca+comunidades",
+    "protesta+minera+Cajamarca",
+    "IAMGOLD+Peru",
+    "mineria+Peru+conflicto",
+    "conflictos+mineros+Peru",
+    "inversion+minera+Peru",
+    "protesta+minera+Peru",
+]
+
+RISK_COLORS = {
+    "ALTO":  {"light": "#A82020", "dark": "#E05252"},
+    "MEDIO": {"light": "#C9A84C", "dark": "#D4A94C"},
+    "BAJO":  {"light": "#2A6B42", "dark": "#4CAF7D"},
+}
+
+NAV_TABS    = ["HOY", "FEED", "BUSCAR", "RADAR", "ACERCA"]
+WEEKDAYS_ES = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]
+
+AI_PERSONA = """Eres una ingeniera geóloga peruana con 18 años de experiencia en minería metálica,
+especializada en gestión de conflictos socioambientales en la sierra norte del Perú.
+Conoces el proyecto Conga de IAMGOLD en Cajamarca, la normativa de concesiones mineras (MINEM),
+el rol del OEFA y la Defensoría del Pueblo, y la dinámica entre empresas extractivas y comunidades.
+Eres directa, técnica y sin rodeos."""
+
+STOPWORDS = {
+    "de","la","el","en","y","a","los","del","que","con","por","las","un","una",
+    "se","es","al","para","su","sus","como","más","no","este","esta","sobre",
+    "entre","fue","han","hay","pero","sin","también","desde","hasta","durante",
+    "tiene","pueden","nuevo","nuevos","tras","ante","según","así","ser",
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAGE SETUP
+# ─────────────────────────────────────────────────────────────────────────────
+
+st.set_page_config(
+    page_title="El Reducto — Inteligencia Minera",
+    page_icon="⛏️",
+    layout="centered",
+    initial_sidebar_state="collapsed",
+)
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
-*,html,body,[class*="css"],.stApp{box-sizing:border-box;font-family:'DM Sans',sans-serif!important;}
-.stApp{background:#F5F0E8;}
-.block-container{padding:0!important;max-width:480px!important;margin:0 auto!important;}
-#MainMenu,footer,header,.stDeployButton,[data-testid="stToolbar"],[data-testid="stDecoration"]{display:none!important;}
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-/* TOPBAR */
-.tb{background:#F5F0E8;padding:18px 22px 12px;border-bottom:1px solid #DDD8CE;}
-.tb-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
-.logo{font-size:16px;font-weight:600;color:#1B2A4A;letter-spacing:-0.02em;}
-.logo-sub{font-size:8px;font-weight:300;color:#6B7A8D;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;}
-.badge{display:inline-flex;align-items:center;gap:5px;background:#1B2A4A;border-radius:100px;padding:5px 12px;}
-.badge-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
-.badge-txt{font-size:9px;font-weight:600;letter-spacing:0.06em;}
-.gold{height:1px;background:linear-gradient(to right,#C9A84C,transparent);}
-
-/* RADIO NAV */
-div[data-testid="stRadio"]{padding:0!important;margin:0!important;}
-div[data-testid="stRadio"]>label{display:none!important;}
-div[data-testid="stRadio"]>div{
-    background:#E8E2D6!important;border-radius:100px!important;
-    padding:3px!important;gap:2px!important;flex-direction:row!important;
-    display:flex!important;flex-wrap:nowrap!important;
+*, html, body, [class*="css"], .stApp {
+    box-sizing: border-box;
+    font-family: 'DM Sans', sans-serif !important;
 }
-div[data-testid="stRadio"]>div>label{
-    flex:1!important;text-align:center!important;padding:5px 2px!important;
-    font-size:7.5px!important;font-weight:400!important;letter-spacing:0.1em!important;
-    text-transform:uppercase!important;color:#A8B4C0!important;
-    border-radius:100px!important;cursor:pointer!important;margin:0!important;
-    border:none!important;background:transparent!important;
+
+.stApp { background: #F5F0E8; }
+
+.block-container {
+    padding: 0 !important;
+    max-width: 480px !important;
+    margin: 0 auto !important;
 }
-div[data-testid="stRadio"]>div>label:has(input:checked){
-    font-weight:600!important;color:#1B2A4A!important;
-    background:#FFFFFF!important;box-shadow:0 1px 4px rgba(0,0,0,0.1)!important;
+
+#MainMenu, footer, header, .stDeployButton,
+[data-testid="stToolbar"], [data-testid="stDecoration"] { display: none !important; }
+
+/* ── TOPBAR ── */
+.topbar-wrap {
+    background: #F5F0E8;
+    padding: 18px 24px 0;
+    border-bottom: 1px solid #DDD8CE;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
-div[data-testid="stRadio"]>div>label>div:first-child{display:none!important;}
-div[data-testid="stRadio"]>div>label p{color:inherit!important;font-size:inherit!important;font-family:inherit!important;margin:0!important;}
+.topbar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+}
+.logo-title {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1B2A4A;
+    letter-spacing: -0.02em;
+}
+.logo-sub {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8.5px;
+    font-weight: 300;
+    color: #6B7A8D;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+.alert-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #1B2A4A;
+    border-radius: 100px;
+    padding: 5px 12px;
+}
+.alert-dot { width: 6px; height: 6px; border-radius: 50%; }
+.alert-text {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+}
+.nav-rail {
+    background: #E8E2D6;
+    border-radius: 100px;
+    padding: 3px;
+    display: flex;
+    gap: 2px;
+    margin-bottom: 0;
+}
+.nav-item {
+    flex: 1;
+    text-align: center;
+    padding: 5px 0;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 7px;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #A8B4C0;
+    border-radius: 100px;
+}
+.nav-item.active {
+    font-weight: 600;
+    color: #1B2A4A;
+    background: #FFFFFF;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+}
+.gold-sep {
+    height: 1px;
+    background: linear-gradient(to right, #C9A84C, transparent);
+    margin: 0;
+}
 
-/* SCREEN */
-.screen{padding:18px 22px 60px;}
-.slabel{font-size:8px;font-weight:400;letter-spacing:0.22em;text-transform:uppercase;color:#6B7A8D;margin-bottom:10px;}
+/* ── SCREEN ── */
+.screen { padding: 20px 24px 80px; }
 
-/* FEATURED */
-.fc{background:#1B2A4A;border-radius:18px;padding:20px;margin-bottom:16px;}
-.fc-meta{font-size:8.5px;color:#8A9AB0;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;}
-.fc-title{font-family:'Cormorant Garamond',serif!important;font-weight:700;font-size:22px;line-height:1.15;color:#F5F0E8;letter-spacing:-0.02em;margin-bottom:14px;}
-.fc-title em{font-weight:400;font-style:italic;}
-.fc-div{height:1px;background:rgba(255,255,255,0.07);margin-bottom:14px;}
-.fc-stats{display:flex;gap:20px;margin-bottom:14px;}
-.fc-sl{font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:#4A5A72;margin-bottom:3px;}
-.fc-sv{font-size:11px;font-weight:600;color:#F5F0E8;}
-.fc-sv.r{color:#E05252!important;}
-.fc-foot{display:flex;justify-content:space-between;align-items:center;}
-.fc-link{font-size:10px;color:#C9A84C;border-bottom:1px solid rgba(201,168,76,0.4);padding-bottom:1px;}
+/* ── TYPOGRAPHY ── */
+.section-label {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8px;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #6B7A8D;
+    margin-bottom: 10px;
+    margin-top: 4px;
+}
+.serif-title {
+    font-family: 'Cormorant Garamond', serif !important;
+    letter-spacing: -0.03em;
+}
 
-/* PILLS */
-.pill{font-size:7.5px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;padding:3px 9px;border-radius:100px;display:inline-block;}
-.pa{border:1.5px solid #A82020;color:#A82020;}
-.pm{border:1.5px solid #C9A84C;color:#C9A84C;}
-.pb{border:1.5px solid #2A6B42;color:#2A6B42;}
-.pad{border:1.5px solid #E05252;color:#E05252;}
-.pmd{border:1.5px solid #D4A94C;color:#D4A94C;}
-.pbd{border:1.5px solid #4CAF7D;color:#4CAF7D;}
+/* ── FEATURED CARD ── */
+.featured-card {
+    background: #1B2A4A;
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+.featured-meta {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8.5px;
+    color: #8A9AB0;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+.featured-title {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #F5F0E8;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+}
+.featured-title em { font-weight: 400; font-style: italic; }
+.featured-divider { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 14px; }
+.featured-stats { display: flex; gap: 20px; margin-bottom: 14px; }
+.stat-label {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 7.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #4A5A72;
+    margin-bottom: 3px;
+}
+.stat-value {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 11px;
+    font-weight: 600;
+    color: #F5F0E8;
+}
+.stat-value.alto { color: #E05252 !important; }
+.featured-footer { display: flex; justify-content: space-between; align-items: center; }
+.open-link {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 10px;
+    color: #C9A84C;
+    border-bottom: 1px solid rgba(201,168,76,0.4);
+    padding-bottom: 1px;
+}
 
-/* NEWS ITEM */
-.ni{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid #DDD8CE;align-items:flex-start;}
-.rb{width:3px;border-radius:4px;align-self:stretch;flex-shrink:0;min-height:32px;}
-.rba{background:#A82020;}.rbm{background:#C9A84C;}.rbb{background:#2A6B42;}
-.ns{font-size:8px;color:#A8B4C0;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;}
-.nt{font-size:12px;font-weight:500;color:#1B2A4A;line-height:1.4;margin-bottom:5px;}
+/* ── PILLS ── */
+.pill {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 7.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 100px;
+    display: inline-block;
+    white-space: nowrap;
+}
+.pill-alto       { border: 1.5px solid #A82020; color: #A82020; }
+.pill-medio      { border: 1.5px solid #C9A84C; color: #C9A84C; }
+.pill-bajo       { border: 1.5px solid #2A6B42; color: #2A6B42; }
+.pill-alto-dark  { border: 1.5px solid #E05252; color: #E05252; }
+.pill-medio-dark { border: 1.5px solid #D4A94C; color: #D4A94C; }
+.pill-bajo-dark  { border: 1.5px solid #4CAF7D; color: #4CAF7D; }
 
-/* DETAIL */
-.ds{font-size:8.5px;color:#A8B4C0;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:10px;}
-.dt{font-family:'Cormorant Garamond',serif!important;font-weight:700;font-size:28px;line-height:1.1;color:#1B2A4A;letter-spacing:-0.03em;margin-bottom:14px;}
-.dt em{font-weight:400;font-style:italic;}
-.sb{background:#FFF;border-left:3px solid #1B2A4A;border-radius:0 10px 10px 0;padding:14px 16px;margin-bottom:14px;font-size:12px;color:#3A4A5A;line-height:1.75;box-shadow:0 2px 8px rgba(0,0,0,0.04);}
-.sl{font-size:11px;color:#1B2A4A;border-bottom:1px solid #1B2A4A;padding-bottom:1px;text-decoration:none;display:inline-block;margin-bottom:18px;}
-.gdiv{height:1px;background:linear-gradient(to right,#C9A84C,transparent);margin:4px 0 16px;}
-.aib{background:#1B2A4A;border-radius:14px;padding:16px;margin-top:10px;}
-.ail{font-size:7.5px;color:#4A5A72;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;}
-.aim{font-size:8.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;}
-.ain{color:#E05252;}.aip{color:#4CAF7D;}.aio{color:#8A9AB0;}
-.ait{font-size:11px;color:#A8B4C0;line-height:1.7;}
+/* ── NEWS ITEM ── */
+.news-item {
+    display: flex;
+    gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid #DDD8CE;
+    align-items: flex-start;
+}
+.risk-bar { width: 3px; border-radius: 4px; align-self: stretch; flex-shrink: 0; min-height: 32px; }
+.risk-bar-alto  { background: #A82020; }
+.risk-bar-medio { background: #C9A84C; }
+.risk-bar-bajo  { background: #2A6B42; }
+.news-source {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8px;
+    color: #A8B4C0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 3px;
+}
+.news-title {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px;
+    font-weight: 500;
+    color: #1B2A4A;
+    line-height: 1.4;
+    margin-bottom: 5px;
+}
 
-/* RADAR */
-.pc{background:#1B2A4A;border-radius:18px;padding:22px 20px;margin-bottom:14px;text-align:center;}
-.pn{font-family:'Cormorant Garamond',serif!important;font-size:58px;font-weight:700;color:#F5F0E8;line-height:1;letter-spacing:-0.04em;}
-.pl{font-size:8px;color:#8A9AB0;letter-spacing:0.16em;text-transform:uppercase;margin-top:6px;}
-.pd{font-family:'Cormorant Garamond',serif!important;font-size:16px;font-style:italic;color:#6B7A8D;margin-top:6px;}
-.ab{background:#FDF0F0;border:1.5px solid #A82020;border-radius:12px;padding:12px 16px;margin-bottom:16px;}
-.al{font-size:7.5px;color:#A82020;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;margin-bottom:4px;}
-.at{font-size:11px;color:#5A2020;line-height:1.55;}
-.sc{background:#FFF;border-radius:12px;padding:12px 14px;box-shadow:0 2px 8px rgba(0,0,0,0.04);margin-bottom:8px;}
-.scl{font-size:7.5px;color:#A8B4C0;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;}
-.scv{font-size:13px;font-weight:600;color:#1B2A4A;}
+/* ── SKELETON ── */
+.skeleton {
+    background: linear-gradient(90deg, #E8E2D6 25%, #F0EBE0 50%, #E8E2D6 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+}
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
 
-/* ACERCA */
-.ahn{font-family:'Cormorant Garamond',serif!important;font-size:38px;font-weight:700;color:#1B2A4A;line-height:1.05;letter-spacing:-0.04em;margin-bottom:6px;}
-.ahs{font-size:8.5px;color:#C9A84C;letter-spacing:0.18em;text-transform:uppercase;}
-.fcard{background:#FFF;border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.04);display:flex;gap:12px;align-items:flex-start;}
-.fnum{font-family:'Cormorant Garamond',serif!important;font-size:16px;font-style:italic;color:#C9A84C;min-width:20px;flex-shrink:0;}
-.ftxt{font-size:11.5px;color:#3A4A5A;line-height:1.6;}
-.bname{font-family:'Cormorant Garamond',serif!important;font-size:22px;font-style:italic;color:#1B2A4A;margin-bottom:12px;}
-.btxt{font-size:11.5px;color:#3A4A5A;line-height:1.8;margin-bottom:10px;}
-.bfoot{font-size:8.5px;color:#A8B4C0;letter-spacing:0.12em;text-transform:uppercase;margin-top:14px;}
+/* ── DETAIL ── */
+.detail-source {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8.5px;
+    color: #A8B4C0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 10px;
+}
+.detail-title {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #1B2A4A;
+    letter-spacing: -0.03em;
+    margin-bottom: 14px;
+}
+.detail-title em { font-weight: 400; font-style: italic; }
+.summary-box {
+    background: #FFFFFF;
+    border-left: 3px solid #1B2A4A;
+    border-radius: 0 10px 10px 0;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 12px;
+    color: #3A4A5A;
+    line-height: 1.75;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.source-link {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 11px;
+    color: #1B2A4A;
+    border-bottom: 1px solid #1B2A4A;
+    padding-bottom: 1px;
+    text-decoration: none;
+    display: inline-block;
+    margin-bottom: 18px;
+}
+.gold-divider { height: 1px; background: linear-gradient(to right, #C9A84C, transparent); margin: 4px 0 16px; }
+.ai-box { background: #1B2A4A; border-radius: 14px; padding: 16px; margin-top: 10px; }
+.ai-label {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 7.5px;
+    color: #4A5A72;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+.ai-impact {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8.5px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+.ai-impact.negativo { color: #E05252; }
+.ai-impact.positivo { color: #4CAF7D; }
+.ai-impact.neutro   { color: #8A9AB0; }
+.ai-text {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 11px;
+    color: #A8B4C0;
+    line-height: 1.7;
+}
 
-/* SKELETON */
-.sk{background:linear-gradient(90deg,#E8E2D6 25%,#F0EBE0 50%,#E8E2D6 75%);background-size:200% 100%;animation:sh 1.4s infinite;border-radius:6px;}
-@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+/* ── RADAR ── */
+.pulse-card {
+    background: #1B2A4A;
+    border-radius: 18px;
+    padding: 22px 20px;
+    margin-bottom: 14px;
+    text-align: center;
+}
+.pulse-num {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-size: 58px;
+    font-weight: 700;
+    color: #F5F0E8;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+.pulse-label {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8px;
+    color: #8A9AB0;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 6px;
+}
+.pulse-diagnosis {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-size: 16px;
+    font-style: italic;
+    color: #6B7A8D;
+    margin-top: 6px;
+}
+.anomaly-box {
+    background: #FDF0F0;
+    border: 1.5px solid #A82020;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+.anomaly-label {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 7.5px;
+    color: #A82020;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.anomaly-text {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 11px;
+    color: #5A2020;
+    line-height: 1.55;
+}
+.stat-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 8px;
+}
+.stat-card-label {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 7.5px;
+    color: #A8B4C0;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+}
+.stat-card-value {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1B2A4A;
+}
 
-/* INPUTS & BUTTONS */
-div[data-baseweb="input"]{background:#FFF!important;border:1.5px solid #DDD8CE!important;border-radius:100px!important;}
-div[data-baseweb="input"]:focus-within{border-color:#1B2A4A!important;}
-input[type="text"]{font-family:'DM Sans',sans-serif!important;font-size:13px!important;color:#1B2A4A!important;background:transparent!important;}
-.stButton>button{background:transparent!important;color:#6B7A8D!important;border:1.5px solid #DDD8CE!important;border-radius:100px!important;font-family:'DM Sans',sans-serif!important;font-size:8.5px!important;font-weight:500!important;letter-spacing:0.1em!important;text-transform:uppercase!important;padding:0.4rem 1rem!important;box-shadow:none!important;transition:all 0.18s!important;}
-.stButton>button:hover{background:#1B2A4A!important;color:#F5F0E8!important;border-color:#1B2A4A!important;}
-[data-testid="stPlotlyChart"]{border-radius:14px;overflow:hidden;}
+/* ── ACERCA ── */
+.acerca-hero-title {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-size: 38px;
+    font-weight: 700;
+    color: #1B2A4A;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    margin-bottom: 6px;
+}
+.acerca-hero-sub {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8.5px;
+    color: #C9A84C;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+.feature-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+.feature-num {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-size: 16px;
+    font-style: italic;
+    color: #C9A84C;
+    min-width: 20px;
+    flex-shrink: 0;
+}
+.feature-text, .bryan-text {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 11.5px;
+    color: #3A4A5A;
+    line-height: 1.7;
+}
+.bryan-text { margin-bottom: 10px; }
+.bryan-name {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-size: 22px;
+    font-style: italic;
+    color: #1B2A4A;
+    margin-bottom: 12px;
+}
+.bryan-footer {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8.5px;
+    color: #A8B4C0;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 14px;
+}
+
+/* ── EMPTY STATE ── */
+.empty-state { text-align: center; padding: 40px 20px; }
+.empty-title {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-size: 20px;
+    font-style: italic;
+    color: #A8B4C0;
+    margin-bottom: 6px;
+}
+.empty-sub {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 11px;
+    color: #C8D0D8;
+}
+
+/* ── INPUTS ── */
+div[data-baseweb="input"] {
+    background: #FFFFFF !important;
+    border: 1.5px solid #DDD8CE !important;
+    border-radius: 100px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+}
+div[data-baseweb="input"]:focus-within { border-color: #1B2A4A !important; }
+input[type="text"] {
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    color: #1B2A4A !important;
+    background: transparent !important;
+}
+
+/* ── BUTTONS ── */
+.stButton > button {
+    background: transparent !important;
+    color: #6B7A8D !important;
+    border: 1.5px solid #DDD8CE !important;
+    border-radius: 100px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 8.5px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    padding: 0.4rem 1rem !important;
+    box-shadow: none !important;
+    transition: all 0.18s !important;
+}
+.stButton > button:hover {
+    background: #1B2A4A !important;
+    color: #F5F0E8 !important;
+    border-color: #1B2A4A !important;
+}
+
+[data-testid="stPlotlyChart"] { border-radius: 14px; overflow: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── DB ────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# DATABASE
+# ─────────────────────────────────────────────────────────────────────────────
+
+def load_db() -> dict:
+    import json
+    try:
+        with open(DB_PATH) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_db(data: dict):
+    import json
+    try:
+        with open(DB_PATH, "w") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
 def init_db():
+    import json
     if not os.path.exists(DB_PATH):
-        with open(DB_PATH,'w') as f: json.dump({'date':'','articles':[],'history':[]},f)
-
-def load_db():
-    try: return json.load(open(DB_PATH,'r'))
-    except: return {'date':'','articles':[],'history':[]}
-
-def save_db(data):
-    with open(DB_PATH,'w') as f: json.dump(data,f)
+        with open(DB_PATH, "w") as f:
+            json.dump({}, f)
 
 init_db()
 
 
-# ── GROQ ──────────────────────────────────────────────────────────────────────
-GEO = """Eres una ingeniera geóloga peruana con 18 años de experiencia en minería metálica,
-especializada en conflictos socioambientales en la sierra norte del Perú.
-Conoces el proyecto Conga de IAMGOLD en Cajamarca, la normativa del MINEM, el OEFA y la dinámica
-entre empresas extractivas y comunidades campesinas. Eres directa y técnica."""
+# ─────────────────────────────────────────────────────────────────────────────
+# AI / GROQ
+# ─────────────────────────────────────────────────────────────────────────────
 
-def groq(prompt, system=None, max_tokens=600):
+def groq_request(prompt: str, system: str | None = None, max_tokens: int = 600) -> str:
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
     try:
-        msgs = []
-        if system: msgs.append({"role":"system","content":system})
-        msgs.append({"role":"user","content":prompt})
-        r = requests.post("https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization":f"Bearer {GROQ_KEY}","Content-Type":"application/json"},
-            json={"model":"llama-3.1-8b-instant","messages":msgs,"max_tokens":max_tokens},timeout=20)
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
+            json={"model": "llama-3.1-8b-instant", "messages": messages, "max_tokens": max_tokens},
+            timeout=20,
+        )
         r.raise_for_status()
-        return r.json()['choices'][0]['message']['content']
+        return r.json()["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        logging.warning(f"Groq: {e}"); return None
+        st.error(f"Error al conectar con IA: {e}")
+        return ""
 
 
-# ── FETCH ─────────────────────────────────────────────────────────────────────
-QUERIES = ["mineria+Cajamarca+conflicto","mineria+Cajamarca+comunidades",
-           "protesta+minera+Cajamarca","IAMGOLD+Peru","mineria+Peru+conflicto",
-           "conflictos+mineros+Peru","inversion+minera+Peru","protesta+minera+Peru"]
+# ─────────────────────────────────────────────────────────────────────────────
+# DATA FETCHING & PROCESSING
+# ─────────────────────────────────────────────────────────────────────────────
 
-def fetch_rss(queries, fecha_limite):
-    headers = {"User-Agent":"Mozilla/5.0"}
+def fetch_articles_from_rss(queries: list[str], fecha_limite: datetime) -> list[dict]:
+    headers    = {"User-Agent": "Mozilla/5.0"}
     todos, seen = [], set()
+
     for q in queries:
         try:
-            resp = requests.get(f"https://news.google.com/rss/search?q={q}&hl=es-419&gl=PE&ceid=PE:es-419",
-                headers=headers, timeout=10)
+            url  = f"https://news.google.com/rss/search?q={q}&hl=es-419&gl=PE&ceid=PE:es-419"
+            resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
-            soup = BeautifulSoup(resp.text,'xml')
-            for item in soup.find_all('item'):
-                titulo  = item.find('title').get_text(strip=True) if item.find('title') else ""
-                pub_raw = item.find('pubDate').get_text(strip=True) if item.find('pubDate') else ""
-                fuente  = item.find('source').get_text(strip=True) if item.find('source') else "Google News"
-                link    = item.find('link').get_text(strip=True) if item.find('link') else ""
-                if not titulo or titulo in seen: continue
+            soup = BeautifulSoup(resp.text, "xml")
+
+            for item in soup.find_all("item"):
+                titulo  = item.find("title").get_text(strip=True)  if item.find("title")  else ""
+                pub_raw = item.find("pubDate").get_text(strip=True) if item.find("pubDate") else ""
+                fuente  = item.find("source").get_text(strip=True)  if item.find("source")  else "Google News"
+                link    = item.find("link").get_text(strip=True)    if item.find("link")    else ""
+
+                if not titulo or titulo in seen:
+                    continue
                 seen.add(titulo)
+
                 try:
                     dt = parsedate_to_datetime(pub_raw).replace(tzinfo=None)
-                    if dt < fecha_limite: continue
-                    todos.append({"titulo":titulo,"fuente":fuente,
-                        "fecha":dt.strftime('%d.%m.%y'),"fecha_iso":dt.strftime('%Y-%m-%d'),"url":link})
-                except: continue
-        except Exception as e: logging.warning(f"RSS '{q}': {e}")
+                    if dt < fecha_limite:
+                        continue
+                    fecha_iso = dt.strftime("%Y-%m-%d")
+                    fecha_fmt = dt.strftime("%-d %b")
+                except Exception:
+                    fecha_iso = datetime.now().strftime("%Y-%m-%d")
+                    fecha_fmt = "—"
+
+                todos.append({"titulo": titulo, "fuente": fuente, "fecha": fecha_fmt,
+                              "fecha_iso": fecha_iso, "url": link, "riesgo": "BAJO"})
+        except Exception:
+            continue
+
     return todos
 
-def classify(df):
-    titulos = df['titulo'].tolist()
-    clases  = []
-    for i in range(0, min(len(titulos),60), 20):
+
+def classify_articles(df: pd.DataFrame) -> pd.DataFrame:
+    titulos   = df["titulo"].tolist()[:60]
+    clases    = []
+
+    for i in range(0, len(titulos), 20):
         lote  = titulos[i:i+20]
-        lista = "\n".join([f"{j+1}. {x}" for j,x in enumerate(lote)])
-        res   = groq(f'Clasifica noticias mineras peruanas. SOLO JSON array. '
-                     f'"ALTO"=protesta/huelga/paro/bloqueo, "MEDIO"=tensión/diálogo/riesgo, "BAJO"=inversión/neutro.\n'
-                     f'Noticias:\n{lista}\nArray JSON:', max_tokens=300)
+        lista = "\n".join(f"{j+1}. {t}" for j, t in enumerate(lote))
+        res   = groq_request(
+            f'Clasifica estas noticias mineras de Perú. Devuelve SOLO un JSON array sin preamble ni texto extra. '
+            f'Valores: "ALTO" (protesta/violencia/huelga/paro/bloqueo), '
+            f'"MEDIO" (tensión/comunidades/debate/riesgo/diálogo), '
+            f'"BAJO" (inversión/neutro/nombramiento/avance). '
+            f'Noticias:\n{lista}\nArray JSON estricto:',
+            max_tokens=300,
+        )
         try:
-            if res:
-                s,e = res.find('['), res.rfind(']')+1
-                if s!=-1 and e>s: clases.extend(json.loads(res[s:e]))
-                else: clases.extend(["BAJO"]*len(lote))
-            else: clases.extend(["BAJO"]*len(lote))
-        except: clases.extend(["BAJO"]*len(lote))
+            parsed = __import__("json").loads(res)
+            clases.extend([str(c).upper() for c in parsed[:len(lote)]])
+        except Exception:
+            clases.extend(["BAJO"] * len(lote))
         time.sleep(0.8)
-    clases.extend(["BAJO"]*(len(titulos)-len(clases)))
-    df['riesgo'] = clases[:len(df)]
-    def norm(x):
-        x=str(x).upper()
-        if 'ALTO' in x: return 'ALTO'
-        if 'MEDIO' in x: return 'MEDIO'
-        return 'BAJO'
-    df['riesgo'] = df['riesgo'].apply(norm)
+
+    clases.extend(["BAJO"] * (len(df) - len(titulos)))
+
+    def normalize(x: str) -> str:
+        if "ALTO"  in x: return "ALTO"
+        if "MEDIO" in x: return "MEDIO"
+        return "BAJO"
+
+    df["riesgo"] = [normalize(c) for c in clases[:len(df)]]
     return df
 
-def keywords(df, n=5):
-    sw = {'de','la','el','en','y','a','los','del','que','con','por','las','un','una','se','es','al',
-          'para','su','sus','como','más','no','este','esta','sobre','entre','fue','han','hay','pero',
-          'sin','también','desde','hasta','durante','tiene','pueden','nuevo','nuevos','tras','ante','según'}
+
+def extract_keywords(df: pd.DataFrame, n: int = 5) -> list[tuple[str, int]]:
     words = []
-    for t in df['titulo']:
-        words.extend([w for w in re.findall(r'\b[a-záéíóúñ]{4,}\b',t.lower()) if w not in sw])
+    for titulo in df["titulo"]:
+        tokens = re.findall(r"\b[a-záéíóúñ]{4,}\b", titulo.lower())
+        words.extend(w for w in tokens if w not in STOPWORDS)
     return Counter(words).most_common(n)
 
+
 @st.cache_data(ttl=3600)
-def get_news():
-    db=load_db(); today=datetime.now().strftime('%Y-%m-%d')
-    if db.get('date')==today and db.get('articles'):
-        return pd.DataFrame(db['articles'])
-    todos = fetch_rss(QUERIES, datetime.now()-timedelta(days=90))
+def fetch_and_process_news() -> pd.DataFrame:
+    db    = load_db()
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    if db.get("date") == today and db.get("articles"):
+        return pd.DataFrame(db["articles"])
+
+    todos = fetch_articles_from_rss(RSS_QUERIES, datetime.now() - timedelta(days=90))
     if not todos:
-        return pd.DataFrame(columns=['titulo','fuente','fecha','fecha_iso','url','riesgo'])
-    df = pd.DataFrame(todos).drop_duplicates(subset='titulo').sort_values('fecha_iso',ascending=False).reset_index(drop=True)
-    df = classify(df)
-    history = db.get('history',[])
-    td = df[df['fecha_iso']==today]
-    entry = {'fecha':today,'alto':int((td['riesgo']=='ALTO').sum()),
-             'medio':int((td['riesgo']=='MEDIO').sum()),'bajo':int((td['riesgo']=='BAJO').sum())}
-    if not any(h['fecha']==today for h in history): history.append(entry)
-    history = sorted(history,key=lambda x:x['fecha'])[-30:]
-    db.update({'date':today,'articles':df.to_dict('records'),'history':history})
-    save_db(db); return df
+        st.warning("No se pudieron obtener artículos. Revisa tu conexión.")
+        return pd.DataFrame(columns=["titulo", "fuente", "fecha", "fecha_iso", "url", "riesgo"])
+
+    df = (
+        pd.DataFrame(todos)
+        .drop_duplicates(subset="titulo")
+        .sort_values("fecha_iso", ascending=False)
+        .reset_index(drop=True)
+    )
+    df = classify_articles(df)
+
+    # Guardar histórico de tendencias
+    history    = db.get("history", [])
+    today_data = df[df["fecha_iso"] == today]
+    entry = {
+        "fecha": today,
+        "alto":  int((today_data["riesgo"] == "ALTO").sum()),
+        "medio": int((today_data["riesgo"] == "MEDIO").sum()),
+        "bajo":  int((today_data["riesgo"] == "BAJO").sum()),
+    }
+    if not any(h["fecha"] == today for h in history):
+        history.append(entry)
+    history = sorted(history, key=lambda x: x["fecha"])[-30:]
+
+    db.update({"date": today, "articles": df.to_dict("records"), "history": history})
+    save_db(db)
+    return df
 
 
-# ── SESSION ───────────────────────────────────────────────────────────────────
-for k,v in {'tab':'HOY','prev_tab':'HOY','selected':None,'summary':{},'impact':{},'company':'IAMGOLD'}.items():
-    if k not in st.session_state: st.session_state[k]=v
+# ─────────────────────────────────────────────────────────────────────────────
+# SESSION STATE
+# ─────────────────────────────────────────────────────────────────────────────
+
+DEFAULTS = {
+    "tab": "HOY",
+    "selected_article": None,
+    "prev_tab": "HOY",
+    "feed_filter": "TODOS",
+    "ai_summary": {},
+    "ai_impact": {},
+    "company_input": "IAMGOLD",
+}
+for k, v in DEFAULTS.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 
-# ── HELPERS ───────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def set_tab(t: str):
+    st.session_state.prev_tab = st.session_state.tab
+    st.session_state.tab = t
+
 def open_article(row):
     st.session_state.prev_tab = st.session_state.tab
-    st.session_state.selected = row
-    st.session_state.tab = 'DETALLE'
+    st.session_state.selected_article = row
+    st.session_state.tab = "DETALLE"
 
-def pill(r, dark=False):
-    cls = {'ALTO':'pad','MEDIO':'pmd','BAJO':'pbd'} if dark else {'ALTO':'pa','MEDIO':'pm','BAJO':'pb'}
-    return f'<span class="pill {cls.get(r,"pb")}">{r}</span>'
+def pill_html(riesgo: str, dark: bool = False) -> str:
+    suffix = "-dark" if dark else ""
+    return f'<span class="pill pill-{riesgo.lower()}{suffix}">{riesgo}</span>'
 
-def rbar(r):
-    cls = {'ALTO':'rba','MEDIO':'rbm','BAJO':'rbb'}.get(r,'rbb')
-    return f'<div class="rb {cls}"></div>'
+def risk_bar_html(riesgo: str) -> str:
+    return f'<div class="risk-bar risk-bar-{riesgo.lower()}"></div>'
 
-def news_row(row, key):
-    c1,c2 = st.columns([12,1],gap="small")
+def split_title(titulo: str) -> tuple[str, str]:
+    words = titulo.split()
+    mid   = max(2, len(words) // 2)
+    return " ".join(words[:mid]), " ".join(words[mid:])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPONENTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def render_skeleton():
+    st.markdown("""
+    <div style="padding:20px 24px;">
+        <div class="skeleton" style="height:10px;width:35%;margin-bottom:16px;"></div>
+        <div style="background:#1B2A4A;border-radius:18px;padding:20px;margin-bottom:20px;">
+            <div class="skeleton" style="height:8px;width:50%;margin-bottom:12px;background:#2A3A5A;"></div>
+            <div class="skeleton" style="height:16px;width:90%;margin-bottom:8px;background:#2A3A5A;"></div>
+            <div class="skeleton" style="height:16px;width:70%;margin-bottom:8px;background:#2A3A5A;"></div>
+            <div class="skeleton" style="height:16px;width:80%;margin-bottom:16px;background:#2A3A5A;"></div>
+        </div>
+        <div class="skeleton" style="height:8px;width:28%;margin-bottom:14px;"></div>
+        <div class="skeleton" style="height:44px;width:100%;margin-bottom:8px;border-radius:8px;"></div>
+        <div class="skeleton" style="height:44px;width:100%;margin-bottom:8px;border-radius:8px;"></div>
+        <div class="skeleton" style="height:44px;width:100%;border-radius:8px;"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_topbar(alert_count: int):
+    dot_color  = "#A82020" if alert_count >= 3 else "#C9A84C" if alert_count >= 1 else "#2A6B42"
+    weekday    = WEEKDAYS_ES[datetime.now().weekday()]
+    today_lbl  = datetime.now().strftime("%-d de %B").capitalize()
+
+    nav_items = "".join(
+        f'<div class="nav-item {"active" if (st.session_state.tab == t or (st.session_state.tab == "DETALLE" and st.session_state.prev_tab == t)) else ""}">{t}</div>'
+        for t in NAV_TABS
+    )
+    st.markdown(f"""
+    <div class="topbar-wrap">
+        <div class="topbar-row">
+            <div>
+                <div class="logo-title">El Reducto</div>
+                <div class="logo-sub">{weekday} {today_lbl} · Lima</div>
+            </div>
+            <div class="alert-badge">
+                <div class="alert-dot" style="background:{dot_color};"></div>
+                <span class="alert-text" style="color:{dot_color};">{alert_count} alertas hoy</span>
+            </div>
+        </div>
+        <div class="nav-rail">{nav_items}</div>
+    </div>
+    <div class="gold-sep"></div>
+    """, unsafe_allow_html=True)
+
+    cols = st.columns(len(NAV_TABS), gap="small")
+    for col, t in zip(cols, NAV_TABS):
+        with col:
+            if st.button(t, key=f"nav_{t}", use_container_width=True):
+                set_tab(t)
+                st.rerun()
+
+
+def render_news_item(row, key: str):
+    c1, c2 = st.columns([11, 1], gap="small")
     with c1:
-        st.markdown(f'<div class="ni">{rbar(row["riesgo"])}<div style="flex:1"><div class="ns">{row["fuente"]} · {row["fecha"]}</div><div class="nt">{row["titulo"]}</div>{pill(row["riesgo"])}</div></div>',unsafe_allow_html=True)
-    with c2:
-        if st.button("→",key=key): open_article(row); st.rerun()
-
-def skeleton():
-    st.markdown("""<div style="padding:20px 22px;">
-    <div class="sk" style="height:10px;width:35%;margin-bottom:16px;"></div>
-    <div style="background:#1B2A4A;border-radius:18px;padding:20px;margin-bottom:20px;">
-        <div class="sk" style="height:8px;width:50%;margin-bottom:12px;background:#2A3A5A;"></div>
-        <div class="sk" style="height:16px;width:90%;margin-bottom:8px;background:#2A3A5A;"></div>
-        <div class="sk" style="height:16px;width:70%;margin-bottom:16px;background:#2A3A5A;"></div>
-    </div>
-    <div class="sk" style="height:8px;width:28%;margin-bottom:14px;"></div>
-    <div class="sk" style="height:44px;width:100%;margin-bottom:8px;border-radius:8px;"></div>
-    <div class="sk" style="height:44px;width:100%;border-radius:8px;"></div>
-    </div>""",unsafe_allow_html=True)
-
-
-# ── LOAD DATA ─────────────────────────────────────────────────────────────────
-ph = st.empty()
-with ph: skeleton()
-df = get_news()
-ph.empty()
-
-today_str   = datetime.now().strftime('%Y-%m-%d')
-alert_count = int((df[df['fecha_iso']==today_str]['riesgo']=='ALTO').sum()) if len(df)>0 else 0
-dot_color   = "#A82020" if alert_count>=3 else "#C9A84C" if alert_count>=1 else "#2A6B42"
-weekday_es  = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"][datetime.now().weekday()]
-today_label = datetime.now().strftime("%-d de %B").capitalize()
-
-
-# ── TOPBAR ────────────────────────────────────────────────────────────────────
-NAV = ["HOY","FEED","BUSCAR","RADAR","ACERCA"]
-
-st.markdown(f"""
-<div class="tb">
-  <div class="tb-row">
-    <div><div class="logo">El Reducto</div><div class="logo-sub">{weekday_es} {today_label} · Lima</div></div>
-    <div class="badge">
-      <span class="badge-dot" style="background:{dot_color};"></span>
-      <span class="badge-txt" style="color:{dot_color};">{alert_count} alertas hoy</span>
-    </div>
-  </div>
-</div>""",unsafe_allow_html=True)
-
-current  = st.session_state.prev_tab if st.session_state.tab=="DETALLE" else st.session_state.tab
-nav_idx  = NAV.index(current) if current in NAV else 0
-selected = st.radio("",NAV,index=nav_idx,horizontal=True,label_visibility="collapsed",key="nav_radio")
-
-if selected != current:
-    st.session_state.tab = selected
-    st.session_state.selected = None
-    st.rerun()
-
-st.markdown('<div class="gold"></div>',unsafe_allow_html=True)
-
-
-# ── HOY ───────────────────────────────────────────────────────────────────────
-if st.session_state.tab=="HOY":
-    st.markdown('<div class="screen">',unsafe_allow_html=True)
-    if len(df)==0:
-        st.markdown('<div style="text-align:center;padding:40px;"><div style="font-family:Cormorant Garamond,serif;font-size:20px;font-style:italic;color:#A8B4C0;">Sin noticias disponibles</div></div>',unsafe_allow_html=True)
-    else:
-        top   = df.iloc[0]
-        words = top['titulo'].split()
-        mid   = max(2,len(words)//2)
-        l1,l2 = ' '.join(words[:mid]),' '.join(words[mid:])
         st.markdown(f"""
-        <div class="slabel" style="display:flex;justify-content:space-between;"><span>Noticia principal</span><span style="color:#C9A84C;">1 / {min(len(df),8)}</span></div>
-        <div class="fc">
-          <div class="fc-meta">{top['fuente']} · {top['fecha']}</div>
-          <div class="fc-title">{l1}<br><em>{l2}</em></div>
-          <div class="fc-stats">
-            <div><div class="fc-sl">Fuente</div><div class="fc-sv">{top['fuente']}</div></div>
-            <div><div class="fc-sl">Riesgo</div><div class="fc-sv {'r' if top['riesgo']=='ALTO' else ''}">{top['riesgo']}</div></div>
-            <div><div class="fc-sl">Fecha</div><div class="fc-sv">{top['fecha']}</div></div>
-          </div>
-          <div class="fc-div"></div>
-          <div class="fc-foot">{pill(top['riesgo'],dark=True)}<span class="fc-link">Abrir noticia →</span></div>
-        </div>""",unsafe_allow_html=True)
-        if st.button("Abrir noticia principal →",use_container_width=True,key="open_top"):
-            open_article(top); st.rerun()
-        st.markdown('<div style="height:12px;"></div><div class="gold" style="margin-bottom:12px;"></div>',unsafe_allow_html=True)
-        st.markdown('<div class="slabel">Últimas noticias</div>',unsafe_allow_html=True)
-        for i,row in df.iloc[1:8].iterrows(): news_row(row,f"h{i}")
-    st.markdown('</div>',unsafe_allow_html=True)
-
-
-# ── FEED ──────────────────────────────────────────────────────────────────────
-elif st.session_state.tab=="FEED":
-    st.markdown('<div class="screen">',unsafe_allow_html=True)
-    FOPTS = ["TODOS","ALTO","MEDIO","BAJO"]
-    fidx  = FOPTS.index(st.session_state.get('feed_f','TODOS'))
-    ff    = st.radio("",FOPTS,index=fidx,horizontal=True,label_visibility="collapsed",key="feed_radio")
-    st.session_state['feed_f'] = ff
-    feed  = df if ff=="TODOS" else df[df['riesgo']==ff]
-    st.markdown(f'<div class="slabel" style="margin-top:12px;">{len(feed)} noticias · {ff}</div>',unsafe_allow_html=True)
-    if len(feed)==0:
-        st.markdown(f'<div style="text-align:center;padding:30px;"><div style="font-family:Cormorant Garamond,serif;font-size:18px;font-style:italic;color:#A8B4C0;">Sin noticias {ff.lower()}</div></div>',unsafe_allow_html=True)
-    else:
-        for i,row in feed.head(40).iterrows(): news_row(row,f"f{i}")
-    st.markdown('</div>',unsafe_allow_html=True)
-
-
-# ── BUSCAR ────────────────────────────────────────────────────────────────────
-elif st.session_state.tab=="BUSCAR":
-    st.markdown('<div class="screen">',unsafe_allow_html=True)
-    q = st.text_input("",placeholder="🔍  Buscar por tema, fuente o empresa...",label_visibility="collapsed")
-    if not q:
-        kw = keywords(df,8)
-        if kw:
-            st.markdown('<div class="slabel" style="margin-top:10px;">Temas frecuentes</div>',unsafe_allow_html=True)
-            st.markdown('<div style="line-height:2.4;">'+" ".join([f'<span class="pill pm" style="margin:3px 2px;">{w}</span>' for w,_ in kw])+'</div>',unsafe_allow_html=True)
-        st.markdown('<div style="height:12px;"></div><div class="slabel">Sugerencias</div>',unsafe_allow_html=True)
-        st.markdown('<div style="line-height:2.4;">'+" ".join([f'<span class="pill pm" style="margin:3px 2px;">{t}</span>' for t in ["IAMGOLD","Cajamarca","Conga","Huelga","MINEM","Comunidades"]])+'</div>',unsafe_allow_html=True)
-    else:
-        mask    = df['titulo'].str.contains(q,case=False,na=False)|df['fuente'].str.contains(q,case=False,na=False)
-        results = df[mask]
-        st.markdown(f'<div class="slabel" style="margin-top:10px;">{len(results)} resultados para "{q}"</div>',unsafe_allow_html=True)
-        if len(results)==0:
-            st.markdown(f'<div style="text-align:center;padding:30px;"><div style="font-family:Cormorant Garamond,serif;font-size:18px;font-style:italic;color:#A8B4C0;">Sin resultados para "{q}"</div></div>',unsafe_allow_html=True)
-        else:
-            for i,row in results.iterrows(): news_row(row,f"s{i}")
-    st.markdown('</div>',unsafe_allow_html=True)
-
-
-# ── DETALLE ───────────────────────────────────────────────────────────────────
-elif st.session_state.tab=="DETALLE" and st.session_state.selected is not None:
-    row    = st.session_state.selected
-    art_id = str(hash(row['titulo']))
-    st.markdown('<div class="screen">',unsafe_allow_html=True)
-    if st.button("← Volver",key="back"):
-        st.session_state.tab = st.session_state.prev_tab
-        st.session_state.selected = None; st.rerun()
-    words  = row['titulo'].split()
-    mid    = max(2,len(words)//2)
-    l1,l2  = ' '.join(words[:mid]),' '.join(words[mid:])
-    st.markdown(f'<div class="ds">{row["fuente"]} · {row["fecha"]}</div><div class="dt">{l1}<br><em>{l2}</em></div>{pill(row["riesgo"])}<div style="height:16px;"></div>',unsafe_allow_html=True)
-    st.markdown('<div class="gold" style="margin-bottom:14px;"></div><div class="slabel">Resumen de la noticia</div>',unsafe_allow_html=True)
-    if art_id not in st.session_state.summary:
-        with st.spinner("Generando resumen..."):
-            r = groq(f'Resume en 3 oraciones esta noticia minera peruana, sin preamble: "{row["titulo"]}"',system=GEO,max_tokens=200)
-            st.session_state.summary[art_id] = r or "No se pudo generar el resumen."
-    st.markdown(f'<div class="sb">{st.session_state.summary[art_id]}</div>',unsafe_allow_html=True)
-    if row.get('url') and str(row['url']).startswith('http'):
-        st.markdown(f'<a href="{row["url"]}" target="_blank" class="sl">Ver fuente original ↗</a>',unsafe_allow_html=True)
-    st.markdown('<div class="gdiv"></div><div class="slabel">Análisis de impacto</div>',unsafe_allow_html=True)
-    company = st.text_input("",value=st.session_state.company,placeholder="Empresa...",label_visibility="collapsed",key="co")
-    st.session_state.company = company
-    if st.button(f"¿Cómo afecta a {company}? →",use_container_width=True,key="analyze"):
-        ck = f"{art_id}_{company}"
-        with st.spinner("Analizando..."):
-            imp = groq(f'Analiza cómo afecta a {company} en Perú. Empieza con "POSITIVO:", "NEGATIVO:" o "NEUTRO:". Máx 4 oraciones.\nNoticia: "{row["titulo"]}"\nContexto: "{st.session_state.summary.get(art_id,"")}"',system=GEO,max_tokens=300)
-            st.session_state.impact[ck] = imp or "No se pudo generar el análisis."
-    ck = f"{art_id}_{company}"
-    if ck in st.session_state.impact:
-        txt = st.session_state.impact[ck]
-        u   = txt.upper()
-        if u.startswith("POSITIVO"):   ic,il = "aip","▲ IMPACTO POSITIVO"
-        elif u.startswith("NEGATIVO"): ic,il = "ain","▼ IMPACTO NEGATIVO"
-        else:                          ic,il = "aio","● IMPACTO NEUTRO"
-        st.markdown(f'<div class="aib"><div class="ail">Análisis IA · Especialista en Minería Peruana</div><div class="aim {ic}">{il}</div><div class="ait">{txt}</div></div>',unsafe_allow_html=True)
-    st.markdown('</div>',unsafe_allow_html=True)
-
-
-# ── RADAR ─────────────────────────────────────────────────────────────────────
-elif st.session_state.tab=="RADAR":
-    st.markdown('<div class="screen">',unsafe_allow_html=True)
-    st.markdown('<div class="slabel">Radar de riesgo territorial</div>',unsafe_allow_html=True)
-    sem   = (datetime.now()-timedelta(days=7)).strftime('%Y-%m-%d')
-    dfs   = df[df['fecha_iso']>=sem] if len(df)>0 else pd.DataFrame()
-    tot   = len(dfs)
-    altos = int((dfs['riesgo']=='ALTO').sum()) if tot>0 else 0
-    medios= int((dfs['riesgo']=='MEDIO').sum()) if tot>0 else 0
-    ratio = altos/tot if tot>0 else 0
-    diag  = "Semana de alta tensión" if ratio>0.4 else "Semana de tensión moderada" if ratio>0.2 else "Semana tranquila"
-    st.markdown(f'<div class="pc"><div class="pn">{altos}</div><div class="pl">Noticias ALTO esta semana</div><div class="pd">{diag}</div></div>',unsafe_allow_html=True)
-
-    if len(df)>0:
-        dc = df.copy(); dc['fecha_iso']=pd.to_datetime(dc['fecha_iso'])
-        prev = pd.date_range(end=datetime.now()-timedelta(days=7),periods=14,freq='D')
-        pa   = [int((dc[dc['fecha_iso'].dt.strftime('%Y-%m-%d')==f.strftime('%Y-%m-%d')]['riesgo']=='ALTO').sum()) for f in prev]
-        prom = sum(pa)/len(pa) if pa else 0
-        if altos>prom*1.5 and prom>0:
-            st.markdown(f'<div class="ab"><div class="al">⚠ Anomalía detectada</div><div class="at">Actividad ALTO inusualmente alta ({altos} vs. promedio {prom:.1f}).</div></div>',unsafe_allow_html=True)
-
-    ft  = dfs['fuente'].value_counts().index[0] if tot>0 else "—"
-    kw  = keywords(dfs,3) if tot>0 else []
-    kws = " · ".join([w for w,_ in kw]) if kw else "—"
-    c1,c2 = st.columns(2,gap="small")
-    with c1:
-        st.markdown(f'<div class="sc"><div class="scl">Noticias MEDIO</div><div class="scv">{medios}</div></div>',unsafe_allow_html=True)
-        st.markdown(f'<div class="sc"><div class="scl">Fuente más activa</div><div class="scv" style="font-size:11px;">{ft}</div></div>',unsafe_allow_html=True)
+        <div class="news-item">
+            {risk_bar_html(row['riesgo'])}
+            <div style="flex:1">
+                <div class="news-source">{row['fuente']} · {row['fecha']}</div>
+                <div class="news-title">{row['titulo']}</div>
+                {pill_html(row['riesgo'])}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
     with c2:
-        st.markdown(f'<div class="sc"><div class="scl">Total procesado</div><div class="scv">{tot}</div></div>',unsafe_allow_html=True)
-        st.markdown(f'<div class="sc"><div class="scl">Keywords</div><div class="scv" style="font-size:10px;">{kws}</div></div>',unsafe_allow_html=True)
-
-    st.markdown('<div class="gold" style="margin:14px 0;"></div><div class="slabel">Tendencia · últimos 14 días</div>',unsafe_allow_html=True)
-    if len(df)>0:
-        dp = df.copy(); dp['fecha_iso']=pd.to_datetime(dp['fecha_iso'])
-        fechas = pd.date_range(end=datetime.now(),periods=14,freq='D')
-        td = [{'fecha':f,
-               'ALTO': int((dp[dp['fecha_iso'].dt.strftime('%Y-%m-%d')==f.strftime('%Y-%m-%d')]['riesgo']=='ALTO').sum()),
-               'MEDIO':int((dp[dp['fecha_iso'].dt.strftime('%Y-%m-%d')==f.strftime('%Y-%m-%d')]['riesgo']=='MEDIO').sum()),
-               'BAJO': int((dp[dp['fecha_iso'].dt.strftime('%Y-%m-%d')==f.strftime('%Y-%m-%d')]['riesgo']=='BAJO').sum())} for f in fechas]
-        dplot = pd.DataFrame(td)
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=dplot['fecha'],y=dplot['ALTO'],name='ALTO',line=dict(color='#A82020',width=2.5),fill='tozeroy',fillcolor='rgba(168,32,32,0.08)'))
-        fig.add_trace(go.Scatter(x=dplot['fecha'],y=dplot['MEDIO'],name='MEDIO',line=dict(color='#C9A84C',width=1.8,dash='dot')))
-        fig.add_trace(go.Scatter(x=dplot['fecha'],y=dplot['BAJO'],name='BAJO',line=dict(color='#2A6B42',width=1.5)))
-        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='DM Sans',color='#6B7A8D',size=10),margin=dict(l=0,r=0,t=10,b=0),height=200,
-            legend=dict(orientation='h',y=-0.35,x=0,font=dict(size=9)),
-            xaxis=dict(showgrid=False,tickformat='%d %b',tickfont=dict(size=9),color='#6B7A8D'),
-            yaxis=dict(showgrid=True,gridcolor='rgba(0,0,0,0.06)',zeroline=False,tickfont=dict(size=9)))
-        st.plotly_chart(fig,use_container_width=True,config={'displayModeBar':False})
-    st.markdown('</div>',unsafe_allow_html=True)
+        if st.button("→", key=key):
+            open_article(row)
+            st.rerun()
 
 
-# ── ACERCA ────────────────────────────────────────────────────────────────────
-elif st.session_state.tab=="ACERCA":
-    st.markdown('<div class="screen">',unsafe_allow_html=True)
+def render_filter_bar():
+    cols   = st.columns(4, gap="small")
+    labels = ["TODOS", "ALTO", "MEDIO", "BAJO"]
+    for col, label in zip(cols, labels):
+        with col:
+            if st.button(label, key=f"filter_{label}", use_container_width=True):
+                st.session_state.feed_filter = label
+                st.rerun()
+
+    active_idx = {"TODOS": 1, "ALTO": 2, "MEDIO": 3, "BAJO": 4}[st.session_state.feed_filter]
+    st.markdown(f"""<style>
+    div[data-testid="column"]:nth-child({active_idx}) .stButton > button {{
+        background: #1B2A4A !important;
+        color: #F5F0E8 !important;
+        border-color: #1B2A4A !important;
+    }}</style>""", unsafe_allow_html=True)
+
+
+def render_trend_chart(df: pd.DataFrame):
+    df_p = df.copy()
+    df_p["fecha_iso"] = pd.to_datetime(df_p["fecha_iso"])
+    fechas = pd.date_range(end=datetime.now(), periods=14, freq="D")
+
+    rows = []
+    for f in fechas:
+        day  = df_p[df_p["fecha_iso"].dt.strftime("%Y-%m-%d") == f.strftime("%Y-%m-%d")]
+        rows.append({
+            "fecha": f,
+            "ALTO":  int((day["riesgo"] == "ALTO").sum()),
+            "MEDIO": int((day["riesgo"] == "MEDIO").sum()),
+            "BAJO":  int((day["riesgo"] == "BAJO").sum()),
+        })
+    df_plot = pd.DataFrame(rows)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_plot["fecha"], y=df_plot["ALTO"],  name="ALTO",
+                             line=dict(color="#A82020", width=2.5), fill="tozeroy",
+                             fillcolor="rgba(168,32,32,0.08)"))
+    fig.add_trace(go.Scatter(x=df_plot["fecha"], y=df_plot["MEDIO"], name="MEDIO",
+                             line=dict(color="#C9A84C", width=1.8, dash="dot")))
+    fig.add_trace(go.Scatter(x=df_plot["fecha"], y=df_plot["BAJO"],  name="BAJO",
+                             line=dict(color="#2A6B42", width=1.5)))
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="DM Sans", color="#6B7A8D", size=10),
+        margin=dict(l=0, r=0, t=10, b=0), height=200,
+        legend=dict(orientation="h", y=-0.35, x=0, font=dict(size=9)),
+        xaxis=dict(showgrid=False, tickformat="%d %b", tickfont=dict(size=9), color="#6B7A8D"),
+        yaxis=dict(showgrid=True, gridcolor="rgba(0,0,0,0.06)", zeroline=False, tickfont=dict(size=9)),
+    )
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LOAD DATA
+# ─────────────────────────────────────────────────────────────────────────────
+
+placeholder = st.empty()
+with placeholder:
+    render_skeleton()
+
+df_total = fetch_and_process_news()
+placeholder.empty()
+
+today_str   = datetime.now().strftime("%Y-%m-%d")
+alert_count = 0
+if len(df_total) > 0:
+    alert_count = int((df_total[df_total["fecha_iso"] == today_str]["riesgo"] == "ALTO").sum())
+
+render_topbar(alert_count)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCREEN: HOY
+# ─────────────────────────────────────────────────────────────────────────────
+
+if st.session_state.tab == "HOY":
+    st.markdown('<div class="screen">', unsafe_allow_html=True)
+
+    if len(df_total) == 0:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-title">Sin noticias disponibles</div>
+            <div class="empty-sub">No se pudo conectar con las fuentes. Intenta más tarde.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        top     = df_total.iloc[0]
+        l1, l2  = split_title(top["titulo"])
+        count   = min(len(df_total), 8)
+
+        st.markdown(f"""
+        <div class="section-label" style="display:flex;justify-content:space-between;">
+            <span>Noticia principal</span>
+            <span style="color:#C9A84C;">1 / {count}</span>
+        </div>
+        <div class="featured-card">
+            <div class="featured-meta">{top['fuente']} · {top['fecha']}</div>
+            <div class="featured-title">{l1}<br><em>{l2}</em></div>
+            <div class="featured-stats">
+                <div><div class="stat-label">Fuente</div><div class="stat-value">{top['fuente']}</div></div>
+                <div><div class="stat-label">Riesgo</div><div class="stat-value {'alto' if top['riesgo'] == 'ALTO' else ''}">{top['riesgo']}</div></div>
+                <div><div class="stat-label">Fecha</div><div class="stat-value">{top['fecha']}</div></div>
+            </div>
+            <div class="featured-divider"></div>
+            <div class="featured-footer">
+                {pill_html(top['riesgo'], dark=True)}
+                <span class="open-link">Abrir noticia →</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        if st.button("Abrir noticia principal →", use_container_width=True, key="open_top"):
+            open_article(top)
+            st.rerun()
+
+        st.markdown('<div style="height:14px;"></div><div class="gold-sep" style="margin-bottom:14px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-label">Últimas noticias</div>', unsafe_allow_html=True)
+        for i, row in df_total.iloc[1:8].iterrows():
+            render_news_item(row, key=f"hoy_{i}")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCREEN: FEED
+# ─────────────────────────────────────────────────────────────────────────────
+
+elif st.session_state.tab == "FEED":
+    st.markdown('<div class="screen">', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Filtrar por nivel de riesgo</div>', unsafe_allow_html=True)
+    render_filter_bar()
+
+    feed = df_total if st.session_state.feed_filter == "TODOS" else df_total[df_total["riesgo"] == st.session_state.feed_filter]
+    st.markdown(f'<div class="section-label" style="margin-top:14px;">{len(feed)} noticias · {st.session_state.feed_filter}</div>', unsafe_allow_html=True)
+
+    if len(feed) == 0:
+        st.markdown(f"""
+        <div class="empty-state">
+            <div class="empty-title">Sin noticias {st.session_state.feed_filter.lower()}</div>
+            <div class="empty-sub">No hay noticias con este nivel de riesgo.</div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for i, row in feed.head(40).iterrows():
+            render_news_item(row, key=f"feed_{i}")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCREEN: BUSCAR
+# ─────────────────────────────────────────────────────────────────────────────
+
+elif st.session_state.tab == "BUSCAR":
+    st.markdown('<div class="screen">', unsafe_allow_html=True)
+    query = st.text_input("", placeholder="🔍  Buscar por tema, fuente o empresa...", label_visibility="collapsed")
+
+    if not query:
+        if len(df_total) > 0:
+            keywords = extract_keywords(df_total, 8)
+            if keywords:
+                st.markdown('<div class="section-label" style="margin-top:10px;">Temas frecuentes</div>', unsafe_allow_html=True)
+                kw_html = " ".join(f'<span class="pill pill-medio" style="margin:3px 2px;">{w}</span>' for w, _ in keywords)
+                st.markdown(f'<div style="margin-bottom:16px;line-height:2.4;">{kw_html}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="section-label">Sugerencias</div>', unsafe_allow_html=True)
+        tags     = ["IAMGOLD", "Cajamarca", "Conga", "Huelga", "MINEM", "Comunidades"]
+        tag_html = " ".join(f'<span class="pill pill-medio" style="margin:3px 2px;">{t}</span>' for t in tags)
+        st.markdown(f'<div style="line-height:2.4;">{tag_html}</div>', unsafe_allow_html=True)
+    else:
+        mask    = df_total["titulo"].str.contains(query, case=False, na=False) | df_total["fuente"].str.contains(query, case=False, na=False)
+        results = df_total[mask]
+        st.markdown(f'<div class="section-label" style="margin-top:10px;">{len(results)} resultados para "{query}"</div>', unsafe_allow_html=True)
+
+        if len(results) == 0:
+            st.markdown(f"""
+            <div class="empty-state">
+                <div class="empty-title">Sin resultados</div>
+                <div class="empty-sub">Intenta con otra palabra clave.</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            for i, row in results.iterrows():
+                render_news_item(row, key=f"search_{i}")
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCREEN: DETALLE
+# ─────────────────────────────────────────────────────────────────────────────
+
+elif st.session_state.tab == "DETALLE" and st.session_state.selected_article is not None:
+    row    = st.session_state.selected_article
+    art_id = str(hash(row["titulo"]))
+    l1, l2 = split_title(row["titulo"])
+
+    st.markdown('<div class="screen">', unsafe_allow_html=True)
+
+    if st.button("← Volver", key="back_btn"):
+        st.session_state.tab = st.session_state.prev_tab
+        st.session_state.selected_article = None
+        st.rerun()
+
+    st.markdown(f"""
+    <div class="detail-source">{row['fuente']} · {row['fecha']}</div>
+    <div class="detail-title">{l1}<br><em>{l2}</em></div>
+    {pill_html(row['riesgo'])}
+    <div style="height:16px;"></div>
+    """, unsafe_allow_html=True)
+
+    # Resumen IA
+    st.markdown('<div class="gold-divider"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Resumen de la noticia</div>', unsafe_allow_html=True)
+
+    if art_id not in st.session_state.ai_summary:
+        with st.spinner("Generando resumen..."):
+            resumen = groq_request(
+                f'Resume en máximo 3 oraciones claras y directas esta noticia minera peruana, sin preamble: "{row["titulo"]}"',
+                system=AI_PERSONA, max_tokens=200,
+            )
+            st.session_state.ai_summary[art_id] = resumen or "No se pudo generar el resumen."
+
+    st.markdown(f'<div class="summary-box">{st.session_state.ai_summary[art_id]}</div>', unsafe_allow_html=True)
+
+    if row.get("url") and str(row["url"]).startswith("http"):
+        st.markdown(f'<a href="{row["url"]}" target="_blank" class="source-link">Ver fuente original ↗</a>', unsafe_allow_html=True)
+
+    # Análisis de impacto
+    st.markdown('<div class="gold-divider"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Análisis de impacto</div>', unsafe_allow_html=True)
+
+    company = st.text_input("", value=st.session_state.company_input,
+                            placeholder="Empresa a analizar...", label_visibility="collapsed", key="company_field")
+    st.session_state.company_input = company
+
+    cache_key = f"{art_id}_{company}"
+    if st.button(f"¿Cómo afecta a {company}? →", use_container_width=True, key="analyze_btn"):
+        with st.spinner("Analizando con criterio geológico..."):
+            impacto = groq_request(
+                f'''Analiza cómo esta noticia puede afectar a {company} en Perú.
+Empieza OBLIGATORIAMENTE con "POSITIVO:", "NEGATIVO:" o "NEUTRO:".
+Sé técnica y directa. Máximo 4 oraciones.
+Noticia: "{row["titulo"]}"
+Contexto: "{st.session_state.ai_summary.get(art_id, "")}"''',
+                system=AI_PERSONA, max_tokens=300,
+            )
+            st.session_state.ai_impact[cache_key] = impacto or "No se pudo generar el análisis."
+
+    if cache_key in st.session_state.ai_impact:
+        texto = st.session_state.ai_impact[cache_key]
+        upper = texto.upper()
+        if upper.startswith("POSITIVO"):
+            impact_class, impact_label = "positivo", "▲ IMPACTO POSITIVO"
+        elif upper.startswith("NEGATIVO"):
+            impact_class, impact_label = "negativo", "▼ IMPACTO NEGATIVO"
+        else:
+            impact_class, impact_label = "neutro", "● IMPACTO NEUTRO"
+
+        st.markdown(f"""
+        <div class="ai-box">
+            <div class="ai-label">Análisis IA · Especialista en Minería Peruana</div>
+            <div class="ai-impact {impact_class}">{impact_label}</div>
+            <div class="ai-text">{texto}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCREEN: RADAR
+# ─────────────────────────────────────────────────────────────────────────────
+
+elif st.session_state.tab == "RADAR":
+    st.markdown('<div class="screen">', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Radar de riesgo territorial</div>', unsafe_allow_html=True)
+
+    semana_inicio = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    df_semana     = df_total[df_total["fecha_iso"] >= semana_inicio] if len(df_total) > 0 else pd.DataFrame()
+    total_semana  = len(df_semana)
+    altos_semana  = int((df_semana["riesgo"] == "ALTO").sum())  if total_semana > 0 else 0
+    medios_semana = int((df_semana["riesgo"] == "MEDIO").sum()) if total_semana > 0 else 0
+    ratio_alto    = altos_semana / total_semana if total_semana > 0 else 0
+    diagnosis     = ("Semana de alta tensión" if ratio_alto > 0.4
+                     else "Semana de tensión moderada" if ratio_alto > 0.2
+                     else "Semana tranquila")
+
+    st.markdown(f"""
+    <div class="pulse-card">
+        <div class="pulse-num">{altos_semana}</div>
+        <div class="pulse-label">Noticias ALTO esta semana</div>
+        <div class="pulse-diagnosis">{diagnosis}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Detección de anomalía
+    if len(df_total) > 0:
+        df_check = df_total.copy()
+        df_check["fecha_iso"] = pd.to_datetime(df_check["fecha_iso"])
+        prev_14 = pd.date_range(end=datetime.now() - timedelta(days=7), periods=14, freq="D")
+        prev_altos = [
+            int((df_check[df_check["fecha_iso"].dt.strftime("%Y-%m-%d") == f.strftime("%Y-%m-%d")]["riesgo"] == "ALTO").sum())
+            for f in prev_14
+        ]
+        promedio = sum(prev_altos) / len(prev_altos) if prev_altos else 0
+        if altos_semana > promedio * 1.5 and promedio > 0:
+            st.markdown(f"""
+            <div class="anomaly-box">
+                <div class="anomaly-label">⚠ Anomalía detectada</div>
+                <div class="anomaly-text">Actividad ALTO inusualmente alta esta semana
+                ({altos_semana} alertas vs. promedio de {promedio:.1f}).</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    fuente_top = df_semana["fuente"].value_counts().index[0] if total_semana > 0 else "—"
+    keywords   = extract_keywords(df_semana, 3) if total_semana > 0 else []
+    kw_str     = " · ".join(w for w, _ in keywords) if keywords else "—"
+
+    c1, c2 = st.columns(2, gap="small")
+    with c1:
+        st.markdown(f'<div class="stat-card"><div class="stat-card-label">Noticias MEDIO</div><div class="stat-card-value">{medios_semana}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stat-card"><div class="stat-card-label">Fuente más activa</div><div class="stat-card-value" style="font-size:11px;">{fuente_top}</div></div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown(f'<div class="stat-card"><div class="stat-card-label">Total procesado</div><div class="stat-card-value">{total_semana}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stat-card"><div class="stat-card-label">Keywords</div><div class="stat-card-value" style="font-size:10px;">{kw_str}</div></div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="gold-sep" style="margin:14px 0;"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Tendencia · últimos 14 días</div>', unsafe_allow_html=True)
+
+    if len(df_total) > 0:
+        render_trend_chart(df_total)
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCREEN: ACERCA
+# ─────────────────────────────────────────────────────────────────────────────
+
+elif st.session_state.tab == "ACERCA":
+    st.markdown('<div class="screen">', unsafe_allow_html=True)
     st.markdown("""
     <div style="padding-bottom:20px;border-bottom:1px solid #DDD8CE;margin-bottom:22px;">
-        <div class="ahn">El<br><em style="font-weight:400;">Reducto</em></div>
-        <div class="ahs">Inteligencia Minera · Perú</div>
+        <div class="acerca-hero-title">El<br><em style="font-weight:400;">Reducto</em></div>
+        <div class="acerca-hero-sub">Inteligencia Minera · Perú</div>
     </div>
-    <div class="slabel">Qué es</div>
-    <div style="font-size:12.5px;color:#3A4A5A;line-height:1.75;margin-bottom:22px;">
+    <div class="section-label">Qué es</div>
+    <div style="font-family:'DM Sans',sans-serif;font-size:12.5px;color:#3A4A5A;line-height:1.75;margin-bottom:22px;">
         <strong style="color:#1B2A4A;font-weight:600;">El Reducto</strong> es un monitor de inteligencia ejecutiva
-        especializado en el sector minero del Perú. Agrega, clasifica y analiza noticias en tiempo real.
+        especializado en el sector minero del Perú. Agrega, clasifica y analiza noticias en tiempo real
+        para que puedas tomar decisiones informadas sin perder tiempo filtrando información irrelevante.
     </div>
-    <div class="slabel">Para qué sirve</div>
-    <div class="fcard"><div class="fnum">01</div><div class="ftxt">Monitorear conflictos sociales y riesgos operativos en zonas mineras.</div></div>
-    <div class="fcard"><div class="fnum">02</div><div class="ftxt">Clasificar noticias automáticamente por nivel de riesgo: ALTO, MEDIO o BAJO.</div></div>
-    <div class="fcard"><div class="fnum">03</div><div class="ftxt">Analizar el impacto de cada noticia en empresas específicas con criterio de IA especializada.</div></div>
-    <div class="fcard"><div class="fnum">04</div><div class="ftxt">Detectar anomalías y tendencias de escalada mediante análisis de series temporales.</div></div>
+    <div class="section-label">Para qué sirve</div>
+    <div class="feature-card"><div class="feature-num">01</div><div class="feature-text">Monitorear conflictos sociales y riesgos operativos en zonas mineras.</div></div>
+    <div class="feature-card"><div class="feature-num">02</div><div class="feature-text">Clasificar noticias automáticamente por nivel de riesgo: ALTO, MEDIO o BAJO.</div></div>
+    <div class="feature-card"><div class="feature-num">03</div><div class="feature-text">Analizar el impacto de cada noticia en empresas específicas con criterio de IA especializada en minería peruana.</div></div>
+    <div class="feature-card"><div class="feature-num">04</div><div class="feature-text">Detectar anomalías y tendencias de escalada en el territorio mediante análisis de series temporales.</div></div>
     <div style="height:22px;"></div>
-    <div class="gold" style="margin-bottom:18px;"></div>
-    <div class="bname">Bryan Perez Aquino</div>
-    <div class="btxt">El Reducto fue diseñado y desarrollado por <strong style="color:#1B2A4A;">Bryan Perez Aquino</strong>
-    como proyecto de portafolio profesional. Combina scraping de noticias en tiempo real, clasificación automática
-    por nivel de riesgo mediante NLP, y análisis de impacto generado por inteligencia artificial especializada en
-    minería peruana. Todas las opiniones y análisis que lees son generados por IA, no por un humano experto.</div>
-    <div class="btxt">Construido con Python, Streamlit y modelos de lenguaje de gran escala (LLMs) como parte
-    de una formación en Ciencia de Datos con IA.</div>
-    <div class="bfoot">Lima, Perú · 2025</div>
-    """,unsafe_allow_html=True)
-    st.markdown('</div>',unsafe_allow_html=True)
+    <div class="gold-sep" style="margin-bottom:18px;"></div>
+    <div class="bryan-name">Bryan Perez Aquino</div>
+    <div class="bryan-text">
+        El Reducto fue diseñado y desarrollado por <strong style="color:#1B2A4A;">Bryan Perez Aquino</strong>
+        como proyecto de portafolio profesional. Combina scraping de noticias en tiempo real,
+        clasificación automática por nivel de riesgo mediante NLP, y análisis de impacto generado por
+        inteligencia artificial especializada en minería peruana.
+    </div>
+    <div class="bryan-text">
+        Construido con Python, Streamlit y modelos de lenguaje de gran escala (LLMs).
+    </div>
+    <div class="bryan-footer">Lima, Perú · 2025</div>
+    """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
