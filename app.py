@@ -133,10 +133,7 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 .divider   { height: 1px; background: #E0D9CE; margin: 4px 0 14px; }
 
 /* ── SCREEN ───────────────────────────────────────────────────────────────── */
-.screen { padding: 8px 16px 60px; }
-@media (min-width: 600px) {
-    .screen { padding: 8px 24px 60px; }
-}
+.screen { padding: 8px 20px 60px; }
 
 /* ── ELIMINAR ESPACIOS FANTASMA DE STREAMLIT ──────────────────────────────── */
 /* Streamlit añade margin-bottom a cada bloque — lo colapsamos globalmente */
@@ -147,6 +144,13 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 [data-testid="stVerticalBlock"] > div:has(.gold-line) { margin-bottom: 0 !important; }
 /* El style tag inyectado dinámicamente también crea un div vacío */
 [data-testid="stVerticalBlock"] > div:empty { display: none !important; }
+
+/* ── PADDING LATERAL GLOBAL ───────────────────────────────────────────────── */
+/* Aplica padding lateral a todo el contenido que no es topbar/nav/wrappers */
+[data-testid="stVerticalBlock"] > div:not(:has(.topbar)):not(:has(button[data-testid="stBaseButton-secondary"])):not(:has(.screen)):not(:has(.gold-line)):not(:empty) {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+}
 
 /* ── SECTION LABEL ────────────────────────────────────────────────────────── */
 .slabel {
