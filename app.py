@@ -59,78 +59,45 @@ st.markdown("""
 .badge-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 .badge-txt { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; }
 
-/* ── NAV RADIO ────────────────────────────────────────────────────────────── */
-div[data-testid="stRadio"][data-key="nav"] > div,
-div[data-testid="stRadio"]:has(> div > label:first-child > div > p:first-child) > div {
+/* ── NAV BOTONES ──────────────────────────────────────────────────────────── */
+.nav-wrap > div[data-testid="stHorizontalBlock"] {
     background: #EDE7DC !important;
     border-radius: 100px !important;
     padding: 3px !important;
     gap: 2px !important;
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
 }
-/* Target ALL radio containers for nav style */
-div[data-testid="stRadio"] > label { display: none !important; }
-div[data-testid="stRadio"] > div {
-    background: #EDE7DC !important;
-    border-radius: 100px !important;
-    padding: 3px !important;
-    gap: 2px !important;
-    display: flex !important;
-    flex-direction: row !important;
-}
-div[data-testid="stRadio"] > div > label {
-    flex: 1 !important;
-    text-align: center !important;
-    padding: 5px 0 !important;
-    font-size: 7px !important;
-    font-weight: 400 !important;
-    letter-spacing: 0.1em !important;
-    text-transform: uppercase !important;
-    color: #A8B4C0 !important;
-    border-radius: 100px !important;
+/* ocultar los botones reales de Streamlit — solo se ven los divs HTML encima */
+.nav-wrap button {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    top: 0 !important; left: 0 !important;
     cursor: pointer !important;
-    margin: 0 !important;
-    border: none !important;
-    background: transparent !important;
-    transition: all 0.15s !important;
+    z-index: 2 !important;
 }
-div[data-testid="stRadio"] > div > label:has(input:checked) {
+.nav-wrap > div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+    position: relative !important;
+    padding: 0 !important;
+}
+.nav-item, .nav-item--active {
+    font-size: 7.5px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    text-align: center !important;
+    padding: 6px 2px !important;
+    border-radius: 100px !important;
+    color: #A8B4C0 !important;
+    font-family: 'DM Sans', sans-serif !important;
+    pointer-events: none !important;
+    user-select: none !important;
+}
+.nav-item--active {
     font-weight: 600 !important;
     color: #1B2A4A !important;
     background: #FFFFFF !important;
     box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
-}
-div[data-testid="stRadio"] > div > label > div:first-child { display: none !important; }
-div[data-testid="stRadio"] > div > label p {
-    color: inherit !important;
-    font-size: inherit !important;
-    font-family: inherit !important;
-    margin: 0 !important;
-    line-height: 1 !important;
-}
-
-/* ── FEED FILTER OVERRIDE (second radio on page) ──────────────────────────── */
-/* We'll use a wrapper class trick via markdown */
-.feed-filter-wrap div[data-testid="stRadio"] > div {
-    background: transparent !important;
-    padding: 0 !important;
-    gap: 6px !important;
-    flex-wrap: wrap !important;
-}
-.feed-filter-wrap div[data-testid="stRadio"] > div > label {
-    flex: none !important;
-    padding: 5px 14px !important;
-    font-size: 8px !important;
-    border: 1.5px solid #E0D9CE !important;
-    color: #6B7A8D !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-.feed-filter-wrap div[data-testid="stRadio"] > div > label:has(input:checked) {
-    color: #FFFFFF !important;
-    box-shadow: none !important;
 }
 
 /* ── GOLD LINE ────────────────────────────────────────────────────────────── */
@@ -607,14 +574,25 @@ st.markdown(f"""
   </div>
 </div>""", unsafe_allow_html=True)
 
-current  = st.session_state.prev_tab if st.session_state.tab == "DETALLE" else st.session_state.tab
-nav_idx  = NAV.index(current) if current in NAV else 0
-selected = st.radio("nav", NAV, index=nav_idx, horizontal=True,
-                    label_visibility="collapsed", key="nav_radio")
-if selected != current:
-    st.session_state.tab = selected
-    st.session_state.sel = None
-    st.rerun()
+current = st.session_state.prev_tab if st.session_state.tab == "DETALLE" else st.session_state.tab
+
+# Nav con botones reales — sin st.radio, control total del CSS
+st.markdown('<div class="nav-wrap">', unsafe_allow_html=True)
+nav_cols = st.columns(len(NAV), gap="small")
+for col, t in zip(nav_cols, NAV):
+    with col:
+        is_active = current == t
+        st.markdown(
+            f'<div class="nav-item{"--active" if is_active else ""}">{t}</div>',
+            unsafe_allow_html=True
+        )
+        if st.button(t, key=f"nav_{t}", use_container_width=True,
+                     help=t):
+            if t != current:
+                st.session_state.tab = t
+                st.session_state.sel = None
+                st.rerun()
+st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="gold-line"></div>', unsafe_allow_html=True)
 
