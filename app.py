@@ -624,7 +624,7 @@ for col, t in zip(nav_cols, NAV):
                 st.rerun()
 
 # Underline dorado en tab activo via nth-child dinámico
-nav_idx = (nav_items.index(current) + 1) if current in nav_items else           (nav_items.index("🔍") + 1 if st.session_state.tab == "BUSCAR" else 1)
+nav_idx = (NAV.index(current) + 1) if current in NAV else 1
 st.markdown(f"""<style>
 div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"])
   > div[data-testid="stColumn"]:nth-child({nav_idx}) button {{
