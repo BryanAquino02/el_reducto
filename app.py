@@ -664,18 +664,16 @@ elif st.session_state.tab == "NOTICIAS":
     q = st.text_input("", placeholder="🔍  Buscar por tema, fuente o empresa...",
                       label_visibility="collapsed")
 
-    # Filtros: 4 botones nativos
-    ff = st.session_state.noticias_filtro
-    opciones = ["TODOS", "ALTO", "MEDIO", "BAJO"]
-    estilos  = ["filter-todos", "filter-alto", "filter-medio", "filter-bajo"]
-    fcols = st.columns(4, gap="small")
-    for col, opt, cls in zip(fcols, opciones, estilos):
-        with col:
-            st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
-            if st.button(opt, key=f"fn_{opt}", use_container_width=True):
-                st.session_state.noticias_filtro = opt
-                st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+    # Filtros: st.pills nativo
+    ff = st.pills(
+        "Filtro",
+        ["TODOS", "🔴 ALTO", "🟡 MEDIO", "🟢 BAJO"],
+        default="TODOS",
+        selection_mode="single",
+        label_visibility="collapsed",
+        key="noticias_filtro_pills"
+    )
+    ff = ff.split(" ")[-1] if ff else "TODOS"
 
     # Aplicar filtros
     feed = df.copy() if len(df) > 0 else pd.DataFrame()
