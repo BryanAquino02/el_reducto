@@ -65,38 +65,42 @@ st.markdown("""
     border-radius: 100px !important;
     padding: 3px !important;
     gap: 2px !important;
-}
-/* ocultar los botones reales de Streamlit — solo se ven los divs HTML encima */
-.nav-wrap button {
-    position: absolute !important;
-    opacity: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    top: 0 !important; left: 0 !important;
-    cursor: pointer !important;
-    z-index: 2 !important;
+    align-items: center !important;
 }
 .nav-wrap > div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
-    position: relative !important;
     padding: 0 !important;
+    min-width: 0 !important;
 }
-.nav-item, .nav-item--active {
+/* Botones del nav — estilo base (inactivo) */
+.nav-wrap button {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 100px !important;
+    color: #A8B4C0 !important;
+    font-family: 'DM Sans', sans-serif !important;
     font-size: 7.5px !important;
     font-weight: 400 !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
-    text-align: center !important;
     padding: 6px 2px !important;
-    border-radius: 100px !important;
-    color: #A8B4C0 !important;
-    font-family: 'DM Sans', sans-serif !important;
-    pointer-events: none !important;
-    user-select: none !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    transition: all 0.15s !important;
+    line-height: 1.1 !important;
+    min-height: unset !important;
+    height: auto !important;
 }
-.nav-item--active {
-    font-weight: 600 !important;
+.nav-wrap button:hover {
+    background: rgba(255,255,255,0.5) !important;
     color: #1B2A4A !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+/* Tab activo — lo identificamos por el div padre que tiene .nav-active */
+.nav-active button {
     background: #FFFFFF !important;
+    color: #1B2A4A !important;
+    font-weight: 600 !important;
     box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
 }
 
@@ -576,22 +580,21 @@ st.markdown(f"""
 
 current = st.session_state.prev_tab if st.session_state.tab == "DETALLE" else st.session_state.tab
 
-# Nav con botones reales — sin st.radio, control total del CSS
+# Nav con st.columns + botones directamente estilizados via CSS
 st.markdown('<div class="nav-wrap">', unsafe_allow_html=True)
 nav_cols = st.columns(len(NAV), gap="small")
 for col, t in zip(nav_cols, NAV):
     with col:
         is_active = current == t
-        st.markdown(
-            f'<div class="nav-item{"--active" if is_active else ""}">{t}</div>',
-            unsafe_allow_html=True
-        )
-        if st.button(t, key=f"nav_{t}", use_container_width=True,
-                     help=t):
+        # wrapper div que marca si está activo
+        cls = "nav-active" if is_active else "nav-inactive"
+        st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
+        if st.button(t, key=f"nav_{t}", use_container_width=True):
             if t != current:
                 st.session_state.tab = t
                 st.session_state.sel = None
                 st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.markdown('<div class="gold-line"></div>', unsafe_allow_html=True)
