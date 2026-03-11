@@ -169,33 +169,44 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 .pbd { border: 1.5px solid #4CAF7D; color: #4CAF7D; background: rgba(255,255,255,0.05); }
 
 /* ── NEWS ITEM ────────────────────────────────────────────────────────────── */
-.ni-wrap { position: relative; border-bottom: 1px solid #E0D9CE; }
-.ni { display: flex; gap: 10px; padding: 13px 0 10px; align-items: flex-start; pointer-events: none; }
-/* Botón invisible que cubre todo el ni-wrap */
-.ni-wrap + div[data-testid="stButton"] {
-    margin-top: -1px !important;
+.ni {
+    display: flex; gap: 10px; padding: 13px 0 10px;
+    border-bottom: 1px solid #E0D9CE; align-items: flex-start;
 }
-.ni-wrap + div[data-testid="stButton"] > button {
-    opacity: 0 !important;
-    position: absolute !important;
-    top: 0 !important; left: 0 !important; right: 0 !important;
-    height: 100% !important;
-    min-height: 64px !important;
-    width: 100% !important;
-    cursor: pointer !important;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    z-index: 10 !important;
-    margin-top: 0 !important;
+/* Ocultar completamente el botón "Ver noticia" debajo de cada .ni */
+.ni + div[data-testid="stButton"] {
+    height: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
     padding: 0 !important;
 }
-/* Hover sobre la fila */
-.ni-wrap:has(+ div[data-testid="stButton"] > button:hover) {
-    background: rgba(27,42,74,0.03) !important;
+.ni + div[data-testid="stButton"] > button {
+    position: relative !important;
+    z-index: 9 !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    display: block !important;
+    cursor: pointer !important;
 }
-.ni-wrap:has(+ div[data-testid="stButton"] > button:hover) .ni-arrow {
-    color: #1B2A4A !important;
+/* Pseudo-elemento que se extiende hacia ARRIBA para cubrir el .ni */
+.ni + div[data-testid="stButton"] > button::before {
+    content: "" !important;
+    display: block !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 90px !important;
+    cursor: pointer !important;
+    z-index: 9 !important;
 }
 .rb { width: 3px; border-radius: 4px; align-self: stretch; flex-shrink: 0; min-height: 36px; }
 .rba { background: #A82020; } .rbm { background: #C9A84C; } .rbb { background: #2A6B42; }
@@ -547,19 +558,26 @@ def rbar(r):
 def news_row(row, key):
     rc = {"ALTO": "#A82020", "MEDIO": "#C9A84C", "BAJO": "#2A6B42"}.get(row["riesgo"], "#2A6B42")
     pc = {"ALTO": "pa", "MEDIO": "pm", "BAJO": "pb"}.get(row["riesgo"], "pb")
-    # Wrapeamos en un div con clase ni-wrap para que el botón invisible lo cubra
+    pill_html = f'<span style="font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:2px 8px;border-radius:100px;border:1.5px solid {rc};color:{rc};background:transparent;">{row["riesgo"]}</span>'
+    label = (
+        f'{row["fuente"]} · {row["fecha"]}\n'
+        f'{row["titulo"]}\n'
+        f'{row["riesgo"]}'
+    )
+    # Usamos st.markdown como contenedor visual y un botón con key único por debajo
+    # El truco: el botón tiene height:0 y se expande via ::before para cubrir el .ni anterior
     st.markdown(
-        f'<div class="ni-wrap">'
-        f'<div class="ni">'
+        f'<div class="ni" id="ni-{key}">'
         f'<div class="rb" style="background:{rc};"></div>'
         f'<div style="flex:1"><div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
         f'<div class="nt">{row["titulo"]}</div>'
-        f'<span class="pill {pc}">{row["riesgo"]}</span></div>'
+        f'{pill_html}</div>'
         f'<div class="ni-arrow">&#8250;</div>'
-        f'</div></div>',
+        f'</div>',
         unsafe_allow_html=True
     )
-    if st.button("", key=key, use_container_width=True):
+    clicked = st.button(f"Ver noticia", key=key, use_container_width=True)
+    if clicked:
         open_art(row); st.rerun()
 
 def skeleton():
