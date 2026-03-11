@@ -432,7 +432,7 @@ def fetch_rss(fecha_limite):
 def classify(df):
     df = df.copy()
     todos = []
-    BATCH = 8
+    BATCH = 15
     for i in range(0, min(len(df), 200), BATCH):
         lote  = df['titulo'].tolist()[i:i+BATCH]
         lista = "\n".join([f"{j+1}. {x}" for j, x in enumerate(lote)])
@@ -450,7 +450,7 @@ def classify(df):
         for _ in range(2):
             res = groq_call(prompt, max_tokens=60 + len(lote) * 10)
             if res: break
-            time.sleep(1.5)
+            time.sleep(4)
         try:
             if res:
                 s, e = res.find('['), res.rfind(']') + 1
@@ -464,7 +464,7 @@ def classify(df):
                 todos.extend(["BAJO"] * len(lote))
         except:
             todos.extend(["BAJO"] * len(lote))
-        time.sleep(0.8)
+        time.sleep(3)
     todos.extend(["BAJO"] * (len(df) - len(todos)))
     df['riesgo'] = [str(x).upper() for x in todos[:len(df)]]
     def norm(x):
