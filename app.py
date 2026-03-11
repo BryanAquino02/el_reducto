@@ -98,15 +98,16 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
     border-radius: 0 !important;
     color: #9CA3AF !important;
     font-family: 'IBM Plex Mono', monospace !important;
-    font-size: 8px !important;
+    font-size: 7px !important;
     font-weight: 400 !important;
-    letter-spacing: 0.1em !important;
+    letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
-    padding: 11px 4px 10px !important;
+    padding: 8px 2px 7px !important;
     width: 100% !important;
     box-shadow: none !important;
     min-height: unset !important;
     height: auto !important;
+    line-height: 1.2 !important;
     margin-bottom: -1px !important;
 }
 div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"]) button:hover {
@@ -152,14 +153,17 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
     border-radius: 100px !important;
     color: #fff !important;
     font-family: 'IBM Plex Mono', monospace !important;
-    font-size: 8px !important;
+    font-size: 7px !important;
     font-weight: 600 !important;
-    letter-spacing: 0.1em !important;
+    letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
-    padding: 8px 20px !important;
+    padding: 5px 14px !important;
     box-shadow: none !important;
     width: auto !important;
-    margin-top: 14px !important;
+    min-height: unset !important;
+    height: auto !important;
+    line-height: 1.4 !important;
+    margin-top: 12px !important;
 }
 .fc-open-btn > div > button:hover { background: #A07609 !important; }
 
@@ -188,14 +192,17 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 .stButton > button {
     background: transparent !important;
     color: #6B7280 !important;
-    border: 1.5px solid #E5E2DB !important;
+    border: 1px solid #E5E2DB !important;
     border-radius: 100px !important;
     font-family: 'IBM Plex Mono', monospace !important;
-    font-size: 8px !important;
+    font-size: 7px !important;
     font-weight: 500 !important;
-    letter-spacing: 0.1em !important;
+    letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
-    padding: 0.4rem 1rem !important;
+    padding: 3px 10px !important;
+    min-height: unset !important;
+    height: auto !important;
+    line-height: 1.4 !important;
     box-shadow: none !important;
     transition: all 0.18s !important;
 }
@@ -207,12 +214,12 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 
 /* ── FILTER BUTTONS ────────────────────────────────────────────────────────── */
 .filter-todos button, .filter-alto button, .filter-medio button, .filter-bajo button {
-    border-radius: 6px !important;
-    padding: 4px 0 !important;
+    border-radius: 5px !important;
+    padding: 3px 0 !important;
     font-size: 7px !important;
     min-height: unset !important;
     height: auto !important;
-    line-height: 1.2 !important;
+    line-height: 1.3 !important;
 }
 .filter-todos button { background: #0F1F3D !important; color: #fff !important; border-color: #0F1F3D !important; }
 .filter-alto  button { background: #FEF2F2 !important; color: #B91C1C !important; border-color: #FECACA !important; }
