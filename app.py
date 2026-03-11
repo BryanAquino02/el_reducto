@@ -350,7 +350,8 @@ def save_db(data):
         }
         if sha:
             payload["sha"] = sha
-        requests.put(GITHUB_API, headers=GITHUB_HEADERS, json=payload, timeout=15)
+        res = requests.put(GITHUB_API, headers=GITHUB_HEADERS, json=payload, timeout=15)
+        logging.warning(f"GitHub save_db: status {res.status_code}")
     except Exception as e:
         logging.warning(f"GitHub save_db: {e}")
 
@@ -388,26 +389,26 @@ def groq_call(prompt, system=None, max_tokens=600):
 #  FETCH & CLASSIFY
 # ══════════════════════════════════════════════════════════════════════════════
 QUERIES = [
-    # Cajamarca — foco principal
-    "mineria+Cajamarca+conflicto",      "mineria+Cajamarca+comunidades",
-    "protesta+minera+Cajamarca",        "huelga+minera+Cajamarca",
-    "mina+oro+Cajamarca",               "rondas+campesinas+mineria",
+    # Cajamarca Peru — foco principal
+    "mineria+Cajamarca+Peru+conflicto",  "mineria+Cajamarca+Peru+comunidades",
+    "protesta+minera+Cajamarca+Peru",    "huelga+minera+Cajamarca+Peru",
+    "mina+oro+Cajamarca+Peru",           "rondas+campesinas+mineria+Peru",
     # IAMGOLD directo
-    "IAMGOLD+Peru",                     "IAMGOLD+Cajamarca",
+    "IAMGOLD+Peru",                      "IAMGOLD+Cajamarca+Peru",
     # Empresas mineras metalicas Peru
-    "Yanacocha+Cajamarca",              "Buenaventura+minera+Peru",
-    "Southern+Copper+Peru",             "Antamina+Peru",
-    "Las+Bambas+conflicto",             "Cerro+Verde+Arequipa",
-    # Conflictos y paros mineros
-    "conflicto+minero+Peru",            "paro+minero+Peru",
-    "bloqueo+minero+Peru",              "protesta+minera+Peru",
-    "comunidades+mineria+Peru",         "conflicto+socioambiental+mineria",
-    # Regulacion mineria metalica
-    "MINEM+mineria+Peru",               "OEFA+mineria+Peru",
-    "inversion+minera+Peru",            "concesion+minera+Peru",
-    # Regiones mineras metalicas
-    "mineria+La+Libertad+Peru",         "mineria+Ancash+Peru",
-    "mineria+Apurimac+Peru",            "mineria+Arequipa+Peru",
+    "Yanacocha+Cajamarca+Peru",          "Buenaventura+minera+Peru",
+    "Southern+Copper+Peru",              "Antamina+Peru",
+    "Las+Bambas+Peru+conflicto",         "Cerro+Verde+Arequipa+Peru",
+    # Conflictos y paros mineros Peru
+    "conflicto+minero+Peru",             "paro+minero+Peru",
+    "bloqueo+minero+Peru",               "protesta+minera+Peru",
+    "comunidades+mineria+Peru",          "conflicto+socioambiental+mineria+Peru",
+    # Regulacion mineria Peru
+    "MINEM+mineria+Peru",                "OEFA+mineria+Peru",
+    "inversion+minera+Peru",             "concesion+minera+Peru",
+    # Regiones mineras Peru
+    "mineria+La+Libertad+Peru",          "mineria+Ancash+Peru",
+    "mineria+Apurimac+Peru",             "mineria+Arequipa+Peru",
 ]
 
 FUENTE_RANK = {}
@@ -521,7 +522,6 @@ def get_keywords(df, n=6):
         words.extend([w for w in re.findall(r'\b[a-záéíóúñ]{4,}\b', t.lower()) if w not in sw])
     return Counter(words).most_common(n)
 
-@st.cache_data(ttl=3600)
 def get_news():
     db    = load_db()
     today = datetime.now().strftime('%Y-%m-%d')
