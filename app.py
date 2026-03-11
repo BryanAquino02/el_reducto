@@ -34,8 +34,15 @@ st.markdown("""
 .stApp { background: #F4EFE6 !important; }
 .block-container {
     padding: 0 !important;
-    max-width: 440px !important;
+    max-width: 100% !important;
+    width: 100% !important;
     margin: 0 auto !important;
+}
+@media (min-width: 600px) {
+    .block-container {
+        max-width: 480px !important;
+        width: 480px !important;
+    }
 }
 #MainMenu, footer, header, .stDeployButton,
 [data-testid="stToolbar"], [data-testid="stDecoration"],
@@ -44,7 +51,10 @@ st.markdown("""
 /* ── TOPBAR ───────────────────────────────────────────────────────────────── */
 .topbar {
     background: #F4EFE6;
-    padding: 16px 20px 0;
+    padding: 16px 16px 0;
+}
+@media (min-width: 600px) {
+    .topbar { padding: 16px 24px 0; }
 }
 .topbar-row {
     display: flex;
@@ -123,7 +133,10 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 .divider   { height: 1px; background: #E0D9CE; margin: 4px 0 14px; }
 
 /* ── SCREEN ───────────────────────────────────────────────────────────────── */
-.screen { padding: 8px 20px 60px; }
+.screen { padding: 8px 16px 60px; }
+@media (min-width: 600px) {
+    .screen { padding: 8px 24px 60px; }
+}
 
 /* ── ELIMINAR ESPACIOS FANTASMA DE STREAMLIT ──────────────────────────────── */
 /* Streamlit añade margin-bottom a cada bloque — lo colapsamos globalmente */
