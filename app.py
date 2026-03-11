@@ -169,50 +169,35 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 .pbd { border: 1.5px solid #4CAF7D; color: #4CAF7D; background: rgba(255,255,255,0.05); }
 
 /* ── NEWS ITEM ────────────────────────────────────────────────────────────── */
-.ni {
-    display: flex; gap: 10px; padding: 13px 0 10px;
-    border-bottom: 1px solid #E0D9CE; align-items: flex-start;
-}
-/* Ocultar completamente el botón "Ver noticia" debajo de cada .ni */
-.ni + div[data-testid="stButton"] {
-    height: 0 !important;
-    overflow: visible !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-.ni + div[data-testid="stButton"] > button {
-    position: relative !important;
-    z-index: 9 !important;
-    opacity: 0 !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    overflow: hidden !important;
-    width: 100% !important;
-    display: block !important;
-    cursor: pointer !important;
-}
-/* Pseudo-elemento que se extiende hacia ARRIBA para cubrir el .ni */
-.ni + div[data-testid="stButton"] > button::before {
-    content: "" !important;
-    display: block !important;
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    height: 90px !important;
-    cursor: pointer !important;
-    z-index: 9 !important;
-}
+.ni-block { border-bottom: 1px solid #E0D9CE; }
+.ni-top { display: flex; gap: 10px; padding: 13px 0 10px; align-items: flex-start; }
 .rb { width: 3px; border-radius: 4px; align-self: stretch; flex-shrink: 0; min-height: 36px; }
 .rba { background: #A82020; } .rbm { background: #C9A84C; } .rbb { background: #2A6B42; }
 .ns { font-size: 8px; color: #A8B4C0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
 .nt { font-size: 13px; font-weight: 500; color: #1B2A4A; line-height: 1.45; margin-bottom: 7px; }
 .ni-arrow { font-size: 18px; color: #D0D8E0; align-self: center; flex-shrink: 0; transition: color 0.12s; }
+/* Botón "Ver noticia" integrado al bloque */
+.ni-block + div[data-testid="stButton"] > button {
+    background: rgba(27,42,74,0.03) !important;
+    border: none !important;
+    border-top: 1px solid #EDE7DC !important;
+    border-radius: 0 !important;
+    color: #6B7A8D !important;
+    font-size: 8px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    padding: 9px 0 !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    transition: background 0.12s, color 0.12s !important;
+}
+.ni-block + div[data-testid="stButton"] > button:hover {
+    background: rgba(27,42,74,0.07) !important;
+    color: #1B2A4A !important;
+    border-color: #E0D9CE !important;
+}
 
 /* ── DETAIL ───────────────────────────────────────────────────────────────── */
 .ds { font-size: 8.5px; color: #A8B4C0; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 10px; }
@@ -558,26 +543,18 @@ def rbar(r):
 def news_row(row, key):
     rc = {"ALTO": "#A82020", "MEDIO": "#C9A84C", "BAJO": "#2A6B42"}.get(row["riesgo"], "#2A6B42")
     pc = {"ALTO": "pa", "MEDIO": "pm", "BAJO": "pb"}.get(row["riesgo"], "pb")
-    pill_html = f'<span style="font-size:7px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:2px 8px;border-radius:100px;border:1.5px solid {rc};color:{rc};background:transparent;">{row["riesgo"]}</span>'
-    label = (
-        f'{row["fuente"]} · {row["fecha"]}\n'
-        f'{row["titulo"]}\n'
-        f'{row["riesgo"]}'
-    )
-    # Usamos st.markdown como contenedor visual y un botón con key único por debajo
-    # El truco: el botón tiene height:0 y se expande via ::before para cubrir el .ni anterior
     st.markdown(
-        f'<div class="ni" id="ni-{key}">'
+        f'<div class="ni-block">'
+        f'<div class="ni-top">'
         f'<div class="rb" style="background:{rc};"></div>'
         f'<div style="flex:1"><div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
         f'<div class="nt">{row["titulo"]}</div>'
-        f'{pill_html}</div>'
+        f'<span class="pill {pc}">{row["riesgo"]}</span></div>'
         f'<div class="ni-arrow">&#8250;</div>'
-        f'</div>',
+        f'</div></div>',
         unsafe_allow_html=True
     )
-    clicked = st.button(f"Ver noticia", key=key, use_container_width=True)
-    if clicked:
+    if st.button("Ver noticia →", key=key, use_container_width=True):
         open_art(row); st.rerun()
 
 def skeleton():
