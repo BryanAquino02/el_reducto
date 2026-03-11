@@ -125,6 +125,16 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 /* ── SCREEN ───────────────────────────────────────────────────────────────── */
 .screen { padding: 8px 20px 60px; }
 
+/* ── ELIMINAR ESPACIOS FANTASMA DE STREAMLIT ──────────────────────────────── */
+/* Streamlit añade margin-bottom a cada bloque — lo colapsamos globalmente */
+.block-container > div { gap: 0 !important; }
+[data-testid="stVerticalBlock"] { gap: 0 !important; }
+/* Espacio específico debajo del nav y gold-line */
+[data-testid="stVerticalBlock"] > [data-testid="stHorizontalBlock"] { margin-bottom: 0 !important; }
+[data-testid="stVerticalBlock"] > div:has(.gold-line) { margin-bottom: 0 !important; }
+/* El style tag inyectado dinámicamente también crea un div vacío */
+[data-testid="stVerticalBlock"] > div:empty { display: none !important; }
+
 /* ── SECTION LABEL ────────────────────────────────────────────────────────── */
 .slabel {
     font-size: 8px; font-weight: 400; letter-spacing: 0.22em;
