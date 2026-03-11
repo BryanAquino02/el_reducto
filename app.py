@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 import plotly.graph_objects as go
-import json, os, time, logging, re
+import json, os, time, logging, re, hashlib
 from collections import Counter
 
 logging.basicConfig(level=logging.WARNING)
@@ -267,8 +267,11 @@ def init_db():
             json.dump({'date': '', 'articles': [], 'history': []}, f)
 
 def load_db():
-    try: return json.load(open(DB_PATH))
-    except: return {'date': '', 'articles': [], 'history': []}
+    try:
+        with open(DB_PATH) as f:
+            return json.load(f)
+    except:
+        return {'date': '', 'articles': [], 'history': []}
 
 def save_db(data):
     with open(DB_PATH, 'w') as f: json.dump(data, f)
@@ -368,22 +371,45 @@ def fetch_rss(fecha_limite):
     return todos
 
 def classify(df):
+    df = df.copy()
     todos = []
-    for i in range(0, min(len(df), 200), 20):
-        lote  = df['titulo'].tolist()[i:i+20]
+    BATCH = 8  # lotes pequeños para no cortar el JSON
+    for i in range(0, min(len(df), 200), BATCH):
+        lote  = df['titulo'].tolist()[i:i+BATCH]
         lista = "\n".join([f"{j+1}. {x}" for j, x in enumerate(lote)])
-        res   = groq_call(
-            f'Clasifica estas noticias mineras de Perú. Devuelve SOLO un JSON array. '
-            f'"ALTO"=protesta/huelga/paro/bloqueo, "MEDIO"=tensión/diálogo/riesgo, "BAJO"=inversión/neutro.\n'
-            f'{lista}\nArray JSON:', max_tokens=300
+        prompt = (
+            f'Eres un analista de riesgo minero en Perú. '
+            f'Clasifica cada noticia con exactamente una etiqueta:\n'
+            f'- ALTO: huelga, paro, bloqueo, protesta violenta, derrame, accidente grave, muertos\n'
+            f'- MEDIO: tensión social, diálogo en riesgo, denuncia ambiental, negociación fallida, advertencia\n'
+            f'- BAJO: inversión, producción, acuerdo firmado, exploración, precio de metales, normativa rutinaria\n\n'
+            f'Noticias:\n{lista}\n\n'
+            f'Responde ÚNICAMENTE con un JSON array de {len(lote)} strings, en orden. '
+            f'Ejemplo para 3 noticias: ["ALTO","BAJO","MEDIO"]\n'
+            f'JSON:'
         )
+        res = None
+        for intento in range(2):  # un reintento si falla
+            res = groq_call(prompt, max_tokens=60 + len(lote) * 10)
+            if res:
+                break
+            time.sleep(1.5)
         try:
             if res:
                 s, e = res.find('['), res.rfind(']') + 1
-                if s != -1 and e > s: todos.extend(json.loads(res[s:e]))
-                else: todos.extend(["BAJO"] * len(lote))
-            else: todos.extend(["BAJO"] * len(lote))
-        except: todos.extend(["BAJO"] * len(lote))
+                if s != -1 and e > s:
+                    parsed = json.loads(res[s:e])
+                    todos.extend(parsed[:len(lote)])
+                    todos.extend(["BAJO"] * max(0, len(lote) - len(parsed)))
+                else:
+                    logging.warning(f"classify: JSON no encontrado en respuesta: {res}")
+                    todos.extend(["BAJO"] * len(lote))
+            else:
+                logging.warning(f"classify: Groq no respondió para lote {i}")
+                todos.extend(["BAJO"] * len(lote))
+        except Exception as ex:
+            logging.warning(f"classify: error parseando JSON: {ex} — respuesta: {res}")
+            todos.extend(["BAJO"] * len(lote))
         time.sleep(0.8)
     todos.extend(["BAJO"] * (len(df) - len(todos)))
     df['riesgo'] = [str(x).upper() for x in todos[:len(df)]]
@@ -398,7 +424,7 @@ def get_keywords(df, n=6):
     sw = {'de','la','el','en','y','a','los','del','que','con','por','las','un','una','se','es',
           'al','para','su','sus','como','más','no','este','esta','sobre','entre','fue','han',
           'hay','pero','sin','también','desde','hasta','durante','tiene','pueden','nuevo',
-          'nuevos','tras','ante','según','así','ser','tras','tras'}
+          'nuevos','tras','ante','según','así','ser'}
     words = []
     for t in df['titulo']:
         words.extend([w for w in re.findall(r'\b[a-záéíóúñ]{4,}\b', t.lower()) if w not in sw])
@@ -679,7 +705,7 @@ elif st.session_state.tab == "BUSCAR":
 # ══════════════════════════════════════════════════════════════════════════════
 elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
     row    = st.session_state.sel
-    art_id = str(hash(row['titulo']))
+    art_id = hashlib.md5(row['titulo'].encode()).hexdigest()[:12]
 
     st.markdown('<div class="screen">', unsafe_allow_html=True)
 
