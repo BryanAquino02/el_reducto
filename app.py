@@ -169,12 +169,11 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 .pbd { border: 1.5px solid #4CAF7D; color: #4CAF7D; background: rgba(255,255,255,0.05); }
 
 /* ── NEWS ITEM ────────────────────────────────────────────────────────────── */
-.ni-top { display: flex; gap: 10px; padding: 13px 0 0; align-items: flex-start; }
-.ni-footer { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 4px; }
-.ni-divider { height: 1px; background: #E0D9CE; }
+.ni-top { display: flex; gap: 10px; padding: 13px 0 6px; align-items: flex-start; }
+.ni-divider { height: 1px; background: #E0D9CE; margin-top: 6px; }
 .rb { width: 3px; border-radius: 4px; align-self: stretch; flex-shrink: 0; min-height: 36px; }
 .ns { font-size: 8px; color: #A8B4C0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
-.nt { font-size: 13px; font-weight: 500; color: #1B2A4A; line-height: 1.45; margin-bottom: 0; }
+.nt { font-size: 13px; font-weight: 500; color: #1B2A4A; line-height: 1.45; }
 .ni-arrow { font-size: 18px; color: #D0D8E0; align-self: center; flex-shrink: 0; }
 /* Botón Ver noticia — compacto, sin borde, alineado con el pill */
 div:has(.ni-top) + div[data-testid="stButton"] > button {
@@ -564,21 +563,23 @@ def rbar(r):
 def news_row(row, key):
     rc = {"ALTO": "#A82020", "MEDIO": "#C9A84C", "BAJO": "#2A6B42"}.get(row["riesgo"], "#2A6B42")
     pc = {"ALTO": "pa", "MEDIO": "pm", "BAJO": "pb"}.get(row["riesgo"], "pb")
+    # Título y fuente
     st.markdown(
         f'<div class="ni-top">'
         f'<div class="rb" style="background:{rc};"></div>'
         f'<div style="flex:1">'
         f'<div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
         f'<div class="nt">{row["titulo"]}</div>'
-        f'<div class="ni-footer">'
-        f'<span class="pill {pc}">{row["riesgo"]}</span>'
-        f'<span class="ni-ver-noticia-placeholder"></span>'
-        f'</div>'
         f'</div><div class="ni-arrow">&#8250;</div></div>',
         unsafe_allow_html=True
     )
-    if st.button("Ver noticia →", key=key, use_container_width=True):
-        open_art(row); st.rerun()
+    # Pill + botón en la misma fila nativa de Streamlit
+    c1, c2 = st.columns([1, 2], gap="small")
+    with c1:
+        st.markdown(f'<div style="padding:4px 0;"><span class="pill {pc}">{row["riesgo"]}</span></div>', unsafe_allow_html=True)
+    with c2:
+        if st.button("Ver noticia →", key=key, use_container_width=True):
+            open_art(row); st.rerun()
     st.markdown('<div class="ni-divider"></div>', unsafe_allow_html=True)
 
 def skeleton():
