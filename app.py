@@ -230,6 +230,9 @@ div[data-testid="stButton"]:has(button p) button {
 .ai-label { font-size: 7.5px; color: #4A5A72; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; }
 .ai-impact { font-size: 8.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
 .ai-neg { color: #E05252; } .ai-pos { color: #4CAF7D; } .ai-neu { color: #8A9AB0; }
+.ai-impact { display: flex; align-items: center; gap: 7px; }
+.ai-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.ai-dot-neg { background: #E05252; } .ai-dot-pos { background: #4CAF7D; } .ai-dot-neu { background: #8A9AB0; }
 .ai-text { font-size: 11px; color: #A8B4C0; line-height: 1.7; }
 
 /* ── RADAR ────────────────────────────────────────────────────────────────── */
@@ -280,6 +283,13 @@ input { font-family: 'DM Sans', sans-serif !important; font-size: 13px !importan
     box-shadow: none !important; transition: all 0.18s !important;
 }
 .stButton > button:hover { background: #1B2A4A !important; color: #F5F0E8 !important; border-color: #1B2A4A !important; }
+/* Botón "Abrir noticia →" de la featured card — key=open_top */
+button[data-testid="stBaseButton-secondary"][aria-label="Abrir noticia →"],
+[data-testid="stButton"]:has(button[aria-label="Abrir noticia →"]) button {
+    background: #C9A84C !important; border: 1.5px solid #C9A84C !important;
+    border-radius: 100px !important; color: #1B2A4A !important;
+    font-weight: 700 !important; box-shadow: none !important;
+}
 
 /* ── SKELETON ─────────────────────────────────────────────────────────────── */
 .sk { background: linear-gradient(90deg,#E8E2D6 25%,#F0EBE0 50%,#E8E2D6 75%); background-size:200% 100%; animation:sh 1.4s infinite; border-radius:6px; }
@@ -684,10 +694,7 @@ if st.session_state.tab == "HOY":
         riesgo_color = "r" if top['riesgo'] == "ALTO" else ""
 
         st.markdown(f"""
-        <div class="slabel" style="display:flex;justify-content:space-between;margin-bottom:10px;">
-          <span>Noticia principal</span>
-          <span style="color:#C9A84C;letter-spacing:0.12em;">1 / {min(len(df),8)}</span>
-        </div>
+        <div class="slabel" style="margin-bottom:10px;">Noticia principal</div>
         <div class="fc">
           <div class="fc-meta">{top['fuente']} · {top['fecha']}</div>
           <div class="fc-title">{l1}<br><em>{l2}</em></div>
@@ -699,11 +706,10 @@ if st.session_state.tab == "HOY":
           <div class="fc-sep"></div>
           <div class="fc-foot">
             {pill(top['riesgo'], dark=True)}
-            <span class="fc-link">Abrir noticia →</span>
           </div>
         </div>""", unsafe_allow_html=True)
 
-        if st.button("Abrir noticia principal →", use_container_width=True, key="open_top"):
+        if st.button("Abrir noticia →", use_container_width=True, key="open_top"):
             open_art(top); st.rerun()
 
         st.markdown('<div class="gold-line" style="margin:14px 0;"></div>', unsafe_allow_html=True)
@@ -858,8 +864,11 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
     if ck not in st.session_state.impacts:
         with st.spinner("Analizando impacto..."):
             imp = groq_call(
-                f'Analiza cómo afecta a {st.session_state.company} en Perú. '
-                f'Empieza con "POSITIVO:", "NEGATIVO:" o "NEUTRO:". Máx 4 oraciones.\n'
+                f'Eres especialista en el proyecto Conga de {st.session_state.company} en Cajamarca, Perú. '
+                f'Analiza el impacto DIRECTO de esta noticia sobre {st.session_state.company} — '
+                f'sus operaciones, costos, reputación o relaciones comunitarias en Perú. '
+                f'Si no involucra a {st.session_state.company} directamente, explica si podría afectarle indirectamente. '
+                f'Empieza con exactamente una palabra: POSITIVO, NEGATIVO o NEUTRO, seguido de dos puntos. Máx 4 oraciones.\n'
                 f'Noticia: "{row["titulo"]}"\nContexto: "{st.session_state.summaries.get(art_id, "")}"',
                 system=GEO_PERSONA, max_tokens=300
             )
@@ -870,10 +879,14 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
     if u.startswith("POSITIVO"):   ic, il = "ai-pos", "▲ IMPACTO POSITIVO"
     elif u.startswith("NEGATIVO"): ic, il = "ai-neg", "▼ IMPACTO NEGATIVO"
     else:                          ic, il = "ai-neu", "● IMPACTO NEUTRO"
+    dot_cls = {"ai-pos": "ai-dot-pos", "ai-neg": "ai-dot-neg", "ai-neu": "ai-dot-neu"}.get(ic, "ai-dot-neu")
     st.markdown(f"""
     <div class="ai-box">
       <div class="ai-label">Análisis IA · Especialista en Minería Peruana</div>
-      <div class="ai-impact {ic}">{il}</div>
+      <div class="ai-impact {ic}">
+        <span class="ai-dot {dot_cls}"></span>{il}
+      </div>
+      <div style="height:1px;background:rgba(255,255,255,0.06);margin:10px 0;"></div>
       <div class="ai-text">{txt}</div>
     </div>""", unsafe_allow_html=True)
 
