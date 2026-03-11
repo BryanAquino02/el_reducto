@@ -99,9 +99,25 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
     background: transparent !important;
     box-shadow: none !important;
 }
-/* Tab activo — key contiene "active" => data-testid lo expone via aria-label o lo targeteamos con :focus-visible workaround */
-button[kind="secondary"][data-testid="stBaseButton-secondary"]:is([aria-label*="HOY"],[aria-label*="FEED"],[aria-label*="RADAR"],[aria-label*="ACERCA"]) {
-    color: #A8B4C0 !important;
+/* Forzar nav en una sola fila horizontal en móvil */
+div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"]) {
+    flex-wrap: nowrap !important;
+    overflow: hidden !important;
+}
+div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"]) > div[data-testid="stColumn"] {
+    min-width: 0 !important;
+    flex: 1 !important;
+    padding: 0 !important;
+}
+/* Botón lupa invisible sobre el ícono HTML */
+[data-testid="stButton"]:has(button[data-testid="stBaseButton-secondary"][title=""]) {
+    position: relative !important;
+    margin-top: -38px !important;
+    height: 38px !important;
+    opacity: 0 !important;
+    z-index: 20 !important;
+    width: 38px !important;
+    float: right !important;
 }
 
 /* ── GOLD LINE ────────────────────────────────────────────────────────────── */
@@ -333,6 +349,32 @@ QUERIES = [
     "mineria+Arequipa+Peru",
 ]
 
+# Ranking de confiabilidad de fuentes (menor = más confiable)
+FUENTE_RANK = {}
+for _f in ["rpp","la republica","la república","peru21"]: FUENTE_RANK[_f] = 1
+for _f in ["el comercio","gestion","gestión","correo"]:   FUENTE_RANK[_f] = 2
+for _f in ["reuters","afp","ap news","associated press"]: FUENTE_RANK[_f] = 3
+for _f in ["proactivo","mining","mineria","andina"]:       FUENTE_RANK[_f] = 4
+
+def fuente_rank(nombre):
+    n = nombre.lower()
+    for k, v in FUENTE_RANK.items():
+        if k in n: return v
+    return 5
+
+def limpiar_titulo(t):
+    # quita " - Fuente" al final y normaliza
+    t = re.sub(r'\s*[\-\u2013\u2014|]\s*[^\-\u2013\u2014|]{1,60}$', '', t)
+    return re.sub(r'\s+', ' ', t).strip().lower()
+
+def dedup_por_fuente(articulos):
+    grupos = {}
+    for art in articulos:
+        clave = limpiar_titulo(art['titulo'])
+        if clave not in grupos or fuente_rank(art['fuente']) < fuente_rank(grupos[clave]['fuente']):
+            grupos[clave] = art
+    return list(grupos.values())
+
 def fetch_rss(fecha_limite):
     headers = {"User-Agent": "Mozilla/5.0"}
     todos, seen = [], set()
@@ -429,11 +471,26 @@ def get_news():
     todos = fetch_rss(datetime.now() - timedelta(days=90))
     if not todos:
         return pd.DataFrame(columns=['titulo', 'fuente', 'fecha', 'fecha_iso', 'url', 'riesgo'])
+    todos = dedup_por_fuente(todos)
     df = (pd.DataFrame(todos)
-          .drop_duplicates(subset='titulo')
           .sort_values('fecha_iso', ascending=False)
           .reset_index(drop=True))
-    df = classify(df)
+
+    # Clasificacion estable: solo clasifica lo que no tiene riesgo guardado en DB
+    clasificados = {
+        hashlib.md5(a['titulo'].encode()).hexdigest()[:12]: a.get('riesgo', '')
+        for a in db.get('articles', [])
+        if a.get('riesgo') in ('ALTO', 'MEDIO', 'BAJO')
+    }
+    ids_df = df['titulo'].apply(lambda t: hashlib.md5(t.encode()).hexdigest()[:12])
+    sin_clasificar = df[~ids_df.isin(clasificados)].copy()
+    if len(sin_clasificar) > 0:
+        sin_clasificar = classify(sin_clasificar)
+        for _, fila in sin_clasificar.iterrows():
+            aid = hashlib.md5(fila['titulo'].encode()).hexdigest()[:12]
+            clasificados[aid] = fila['riesgo']
+    df['riesgo'] = ids_df.apply(lambda aid: clasificados.get(aid, 'BAJO'))
+
     history  = db.get('history', [])
     td       = df[df['fecha_iso'] == today]
     entry    = {'fecha': today,
@@ -535,27 +592,34 @@ st.markdown(f"""
       <div class="logo">El Reducto</div>
       <div class="logo-sub">{weekday_es} {today_label} · Lima</div>
     </div>
-    <div class="badge">
-      <span class="badge-dot" style="background:{dot_color};"></span>
-      <span class="badge-txt" style="color:{dot_color};">{alert_count} alertas hoy</span>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="search-icon-btn" id="lupa-trigger">&#128269;</span>
+      <div class="badge">
+        <span class="badge-dot" style="background:{dot_color};"></span>
+        <span class="badge-txt" style="color:{dot_color};">{alert_count} alertas hoy</span>
+      </div>
     </div>
   </div>
 </div>""", unsafe_allow_html=True)
 
+# Botón lupa invisible — CSS lo posiciona sobre el ícono HTML del topbar
+if st.button("buscar", key="lupa_btn"):
+    if st.session_state.tab != "BUSCAR":
+        st.session_state.tab = "BUSCAR"
+        st.session_state.sel = None
+        st.rerun()
+
 current = st.session_state.prev_tab if st.session_state.tab == "DETALLE" else st.session_state.tab
 
 # Nav: 4 tabs + lupa buscar
-nav_cols = st.columns([1,1,1,1,0.5], gap="small")
-nav_items = NAV + ["🔍"]
-for col, t in zip(nav_cols, nav_items):
+nav_cols = st.columns(len(NAV), gap="small")
+for col, t in zip(nav_cols, NAV):
     with col:
-        dest = "BUSCAR" if t == "🔍" else t
-        is_active = (current == dest)
-        # key distinto para activo => CSS lo selecciona
+        is_active = (current == t)
         btn_key = f"nav_active_{t}" if is_active else f"nav_{t}"
         if st.button(t, key=btn_key, use_container_width=True):
-            if dest != current:
-                st.session_state.tab = dest
+            if t != current:
+                st.session_state.tab = t
                 st.session_state.sel = None
                 st.rerun()
 
