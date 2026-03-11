@@ -45,63 +45,70 @@ st.markdown("""
 .topbar {
     background: #F4EFE6;
     padding: 16px 20px 0;
-    border-bottom: 1px solid #E0D9CE;
 }
 .topbar-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 14px;
+    align-items: center;
+    margin-bottom: 12px;
 }
 .logo { font-size: 16px; font-weight: 600; color: #1B2A4A; letter-spacing: -0.02em; line-height: 1.2; }
 .logo-sub { font-size: 8px; font-weight: 300; color: #6B7A8D; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
 .badge { display: inline-flex; align-items: center; gap: 5px; background: #1B2A4A; border-radius: 100px; padding: 5px 12px; }
 .badge-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 .badge-txt { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; }
+.search-icon-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: #EDE7DC; border: none; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: background 0.15s; line-height: 1;
+}
+.search-icon-btn:hover { background: #E0D9CE; }
 
-/* ── NAV BOTONES ──────────────────────────────────────────────────────────── */
+/* ── NAV UNDERLINE ────────────────────────────────────────────────────────── */
 .nav-wrap > div[data-testid="stHorizontalBlock"] {
-    background: #EDE7DC !important;
-    border-radius: 100px !important;
-    padding: 3px !important;
-    gap: 2px !important;
-    align-items: center !important;
+    border-bottom: 1px solid #E0D9CE !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
 }
 .nav-wrap > div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
     padding: 0 !important;
     min-width: 0 !important;
 }
-/* Botones del nav — estilo base (inactivo) */
 .nav-wrap button {
     background: transparent !important;
     border: none !important;
-    border-radius: 100px !important;
+    border-bottom: 2px solid transparent !important;
+    border-radius: 0 !important;
     color: #A8B4C0 !important;
     font-family: 'DM Sans', sans-serif !important;
-    font-size: 7.5px !important;
+    font-size: 8px !important;
     font-weight: 400 !important;
-    letter-spacing: 0.08em !important;
+    letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
-    padding: 6px 2px !important;
+    padding: 10px 2px 9px !important;
     width: 100% !important;
     box-shadow: none !important;
     transition: all 0.15s !important;
     line-height: 1.1 !important;
     min-height: unset !important;
     height: auto !important;
+    margin-bottom: -1px !important;
 }
 .nav-wrap button:hover {
-    background: rgba(255,255,255,0.5) !important;
-    color: #1B2A4A !important;
-    border: none !important;
+    color: #6B7A8D !important;
+    background: transparent !important;
+    border-bottom-color: transparent !important;
     box-shadow: none !important;
 }
-/* Tab activo — lo identificamos por el div padre que tiene .nav-active */
 .nav-active button {
-    background: #FFFFFF !important;
     color: #1B2A4A !important;
     font-weight: 600 !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+    border-bottom: 2px solid #C9A84C !important;
+    background: transparent !important;
+    box-shadow: none !important;
 }
 
 /* ── GOLD LINE ────────────────────────────────────────────────────────────── */
@@ -213,6 +220,11 @@ input { font-family: 'DM Sans', sans-serif !important; font-size: 13px !importan
     box-shadow: none !important; transition: all 0.18s !important;
 }
 .stButton > button:hover { background: #1B2A4A !important; color: #F5F0E8 !important; border-color: #1B2A4A !important; }
+/* Ocultar botón real de búsqueda — solo visible el ícono HTML */
+[data-testid="stButton"]:has(button[title="Buscar"]) {
+    position: absolute !important; opacity: 0 !important;
+    pointer-events: none !important; height: 0 !important;
+}
 
 /* ── SKELETON ─────────────────────────────────────────────────────────────── */
 .sk { background: linear-gradient(90deg,#E8E2D6 25%,#F0EBE0 50%,#E8E2D6 75%); background-size:200% 100%; animation:sh 1.4s infinite; border-radius:6px; }
@@ -453,74 +465,15 @@ def rbar(r):
     return f'<div class="rb rb{r[0].lower()}"></div>'
 
 def news_row(row, key):
-    art_id  = hashlib.md5(row['titulo'].encode()).hexdigest()[:12]
-    exp_key = f"exp_{key}"
-    if exp_key not in st.session_state:
-        st.session_state[exp_key] = False
-
-    # fila principal clicable
     st.markdown(
         f'<div class="ni">{rbar(row["riesgo"])}'
         f'<div style="flex:1"><div class="ns">{row["fuente"]} · {row["fecha"]}</div>'
         f'<div class="nt">{row["titulo"]}</div>{pill(row["riesgo"])}</div>'
-        f'<div class="ni-arrow" style="color:{"#1B2A4A" if st.session_state[exp_key] else "#C8D0D8"};">›</div></div>',
+        f'<div class="ni-arrow">›</div></div>',
         unsafe_allow_html=True
     )
-    col_btn, col_open = st.columns([3, 1], gap="small")
-    with col_btn:
-        if st.button("▸ Ver resumen", key=f"exp_btn_{key}",
-                     help=row['titulo'], use_container_width=True):
-            st.session_state[exp_key] = not st.session_state[exp_key]
-            st.rerun()
-    with col_open:
-        if st.button("↗", key=f"open_{key}", help="Abrir noticia completa",
-                     use_container_width=True):
-            open_art(row); st.rerun()
-
-    # panel expandido
-    if st.session_state[exp_key]:
-        # resumen IA
-        sum_key = f"sum_{art_id}"
-        if sum_key not in st.session_state.summaries:
-            with st.spinner(""):
-                r = groq_call(
-                    f'Resume en 2 oraciones concisas esta noticia minera peruana, sin preamble: "{row["titulo"]}"',
-                    system=GEO_PERSONA, max_tokens=120
-                )
-                st.session_state.summaries[sum_key] = r or row['titulo']
-        st.markdown(
-            f'<div class="summary-box" style="margin:0 0 10px 13px;">'
-            f'{st.session_state.summaries[sum_key]}</div>',
-            unsafe_allow_html=True
-        )
-        # botón Opinión IA
-        ck = f"{art_id}_{st.session_state.company}"
-        ia_key = f"ia_btn_{key}"
-        if ck not in st.session_state.impacts:
-            if st.button("✦  Opinión IA sobre " + st.session_state.company,
-                         key=ia_key, use_container_width=False):
-                with st.spinner("Analizando..."):
-                    imp = groq_call(
-                        f'Analiza cómo afecta a {st.session_state.company} en Perú. '
-                        f'Empieza con "POSITIVO:", "NEGATIVO:" o "NEUTRO:". Máx 3 oraciones.\n'
-                        f'Noticia: "{row["titulo"]}"',
-                        system=GEO_PERSONA, max_tokens=200
-                    )
-                    st.session_state.impacts[ck] = imp or "No se pudo generar el análisis."
-                st.rerun()
-        else:
-            txt = st.session_state.impacts[ck]
-            u   = txt.upper()
-            if u.startswith("POSITIVO"):   ic, il = "ai-pos", "▲ IMPACTO POSITIVO"
-            elif u.startswith("NEGATIVO"): ic, il = "ai-neg", "▼ IMPACTO NEGATIVO"
-            else:                          ic, il = "ai-neu", "● IMPACTO NEUTRO"
-            st.markdown(
-                f'<div class="ai-box" style="margin:0 0 12px 13px;">'
-                f'<div class="ai-label">Opinión IA · {st.session_state.company}</div>'
-                f'<div class="ai-impact {ic}">{il}</div>'
-                f'<div class="ai-text">{txt}</div></div>',
-                unsafe_allow_html=True
-            )
+    if st.button("", key=key, help=row['titulo'], use_container_width=True):
+        open_art(row); st.rerun()
 
 def skeleton():
     st.markdown("""
@@ -562,7 +515,7 @@ today_label = datetime.now().strftime("%-d de %B").capitalize()
 # ══════════════════════════════════════════════════════════════════════════════
 #  TOPBAR
 # ══════════════════════════════════════════════════════════════════════════════
-NAV = ["HOY", "FEED", "BUSCAR", "RADAR", "ACERCA"]
+NAV = ["HOY", "FEED", "RADAR", "ACERCA"]
 
 st.markdown(f"""
 <div class="topbar">
@@ -571,22 +524,30 @@ st.markdown(f"""
       <div class="logo">El Reducto</div>
       <div class="logo-sub">{weekday_es} {today_label} · Lima</div>
     </div>
-    <div class="badge">
-      <span class="badge-dot" style="background:{dot_color};"></span>
-      <span class="badge-txt" style="color:{dot_color};">{alert_count} alertas hoy</span>
+    <div class="topbar-right">
+      <span class="search-icon-btn" id="search-trigger">🔍</span>
+      <div class="badge">
+        <span class="badge-dot" style="background:{dot_color};"></span>
+        <span class="badge-txt" style="color:{dot_color};">{alert_count} alertas hoy</span>
+      </div>
     </div>
   </div>
 </div>""", unsafe_allow_html=True)
 
+# Botón de búsqueda real de Streamlit (invisible, activado por el ícono HTML)
+if st.button("🔍", key="nav_buscar_icon", help="Buscar"):
+    st.session_state.tab = "BUSCAR"
+    st.session_state.sel = None
+    st.rerun()
+
 current = st.session_state.prev_tab if st.session_state.tab == "DETALLE" else st.session_state.tab
 
-# Nav con st.columns + botones directamente estilizados via CSS
+# Nav underline con 4 tabs
 st.markdown('<div class="nav-wrap">', unsafe_allow_html=True)
 nav_cols = st.columns(len(NAV), gap="small")
 for col, t in zip(nav_cols, NAV):
     with col:
         is_active = current == t
-        # wrapper div que marca si está activo
         cls = "nav-active" if is_active else "nav-inactive"
         st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
         if st.button(t, key=f"nav_{t}", use_container_width=True):
@@ -796,39 +757,33 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
         st.markdown(f'<a href="{row["url"]}" target="_blank" class="source-btn">Ver fuente original ↗</a>',
                     unsafe_allow_html=True)
 
-    # Análisis de impacto
+    # Impacto automático — se genera al abrir la noticia, sin botón
     st.markdown('<div class="gdiv"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="slabel">Análisis de impacto</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="slabel">Impacto para {st.session_state.company}</div>',
+                unsafe_allow_html=True)
 
-    company = st.text_input("", value=st.session_state.company,
-                            placeholder="Empresa a analizar...",
-                            label_visibility="collapsed", key="co_input")
-    st.session_state.company = company
-
-    if st.button(f"¿Cómo afecta a {company}? →", use_container_width=True, key="analyze"):
-        ck = f"{art_id}_{company}"
-        with st.spinner("Analizando con criterio geológico..."):
+    ck = f"{art_id}_{st.session_state.company}"
+    if ck not in st.session_state.impacts:
+        with st.spinner("Analizando impacto..."):
             imp = groq_call(
-                f'Analiza cómo afecta a {company} en Perú. '
+                f'Analiza cómo afecta a {st.session_state.company} en Perú. '
                 f'Empieza con "POSITIVO:", "NEGATIVO:" o "NEUTRO:". Máx 4 oraciones.\n'
                 f'Noticia: "{row["titulo"]}"\nContexto: "{st.session_state.summaries.get(art_id, "")}"',
                 system=GEO_PERSONA, max_tokens=300
             )
             st.session_state.impacts[ck] = imp or "No se pudo generar el análisis."
 
-    ck = f"{art_id}_{company}"
-    if ck in st.session_state.impacts:
-        txt = st.session_state.impacts[ck]
-        u   = txt.upper()
-        if u.startswith("POSITIVO"):   ic, il = "ai-pos", "▲ IMPACTO POSITIVO"
-        elif u.startswith("NEGATIVO"): ic, il = "ai-neg", "▼ IMPACTO NEGATIVO"
-        else:                          ic, il = "ai-neu", "● IMPACTO NEUTRO"
-        st.markdown(f"""
-        <div class="ai-box">
-          <div class="ai-label">Análisis IA · Especialista en Minería Peruana</div>
-          <div class="ai-impact {ic}">{il}</div>
-          <div class="ai-text">{txt}</div>
-        </div>""", unsafe_allow_html=True)
+    txt = st.session_state.impacts[ck]
+    u   = txt.upper()
+    if u.startswith("POSITIVO"):   ic, il = "ai-pos", "▲ IMPACTO POSITIVO"
+    elif u.startswith("NEGATIVO"): ic, il = "ai-neg", "▼ IMPACTO NEGATIVO"
+    else:                          ic, il = "ai-neu", "● IMPACTO NEUTRO"
+    st.markdown(f"""
+    <div class="ai-box">
+      <div class="ai-label">Análisis IA · Especialista en Minería Peruana</div>
+      <div class="ai-impact {ic}">{il}</div>
+      <div class="ai-text">{txt}</div>
+    </div>""", unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
