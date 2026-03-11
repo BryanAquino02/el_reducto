@@ -169,12 +169,34 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 .pbd { border: 1.5px solid #4CAF7D; color: #4CAF7D; background: rgba(255,255,255,0.05); }
 
 /* ── NEWS ITEM ────────────────────────────────────────────────────────────── */
-.ni-top { display: flex; gap: 10px; padding: 13px 0 10px; align-items: flex-start; }
-.ni-divider { height: 1px; background: #E0D9CE; margin: 0; }
+.ni-top { display: flex; gap: 10px; padding: 13px 0 0; align-items: flex-start; }
+.ni-footer { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 4px; }
+.ni-divider { height: 1px; background: #E0D9CE; }
 .rb { width: 3px; border-radius: 4px; align-self: stretch; flex-shrink: 0; min-height: 36px; }
 .ns { font-size: 8px; color: #A8B4C0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
-.nt { font-size: 13px; font-weight: 500; color: #1B2A4A; line-height: 1.45; margin-bottom: 7px; }
-.ni-arrow { font-size: 18px; color: #D0D8E0; align-self: center; flex-shrink: 0; transition: color 0.12s; }
+.nt { font-size: 13px; font-weight: 500; color: #1B2A4A; line-height: 1.45; margin-bottom: 0; }
+.ni-arrow { font-size: 18px; color: #D0D8E0; align-self: center; flex-shrink: 0; }
+/* Botón Ver noticia — compacto, sin borde, alineado con el pill */
+div:has(.ni-top) + div[data-testid="stButton"] > button {
+    background: transparent !important;
+    border: 1px solid #D0D8E0 !important;
+    border-radius: 100px !important;
+    color: #6B7A8D !important;
+    font-size: 7.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase !important;
+    padding: 4px 14px !important;
+    width: auto !important;
+    margin-top: -34px !important;
+    margin-left: auto !important;
+    margin-right: 24px !important;
+    display: block !important;
+    box-shadow: none !important;
+    float: right !important;
+    position: relative !important;
+    z-index: 2 !important;
+}
 /* Botón "Ver noticia": anula el estilo global de botones */
 div:has(> div > .ni-top) + div[data-testid="stButton"] button,
 .ni-top ~ div[data-testid="stButton"] button {
@@ -542,20 +564,22 @@ def rbar(r):
 def news_row(row, key):
     rc = {"ALTO": "#A82020", "MEDIO": "#C9A84C", "BAJO": "#2A6B42"}.get(row["riesgo"], "#2A6B42")
     pc = {"ALTO": "pa", "MEDIO": "pm", "BAJO": "pb"}.get(row["riesgo"], "pb")
-    with st.container():
-        st.markdown(
-            f'<div class="ni-top">'
-            f'<div class="rb" style="background:{rc};"></div>'
-            f'<div style="flex:1"><div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
-            f'<div class="nt">{row["titulo"]}</div>'
-            f'<span class="pill {pc}">{row["riesgo"]}</span></div>'
-            f'<div class="ni-arrow">&#8250;</div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-        if st.button("Ver noticia →", key=key, use_container_width=True):
-            open_art(row); st.rerun()
-        st.markdown('<div class="ni-divider"></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="ni-top">'
+        f'<div class="rb" style="background:{rc};"></div>'
+        f'<div style="flex:1">'
+        f'<div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
+        f'<div class="nt">{row["titulo"]}</div>'
+        f'<div class="ni-footer">'
+        f'<span class="pill {pc}">{row["riesgo"]}</span>'
+        f'<span class="ni-ver-noticia-placeholder"></span>'
+        f'</div>'
+        f'</div><div class="ni-arrow">&#8250;</div></div>',
+        unsafe_allow_html=True
+    )
+    if st.button("Ver noticia →", key=key, use_container_width=True):
+        open_art(row); st.rerun()
+    st.markdown('<div class="ni-divider"></div>', unsafe_allow_html=True)
 
 def skeleton():
     st.markdown("""
