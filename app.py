@@ -319,8 +319,12 @@ init_db()
 # ══════════════════════════════════════════════════════════════════════════════
 GEO_PERSONA = """Eres una ingeniera geóloga peruana con 18 años de experiencia en minería metálica,
 especializada en conflictos socioambientales en la sierra norte del Perú.
-Conoces el proyecto Conga de IAMGOLD en Cajamarca, la normativa del MINEM, el OEFA
-y la dinámica entre empresas extractivas y comunidades campesinas. Eres directa y técnica."""
+Conoces bien la diferencia entre IAMGOLD Corp (matriz canadiense, cotiza en NYSE/TSX) e IAMGOLD Perú
+(subsidiaria con proyectos de exploración en Cajamarca). Son entidades distintas: lo que afecta a la
+matriz no necesariamente impacta las operaciones peruanas y viceversa.
+El proyecto Conga en Cajamarca es de Yanacocha (Newmont/Buenaventura), no de IAMGOLD.
+Conoces la normativa del MINEM, el OEFA y la dinámica entre empresas extractivas y comunidades campesinas.
+Eres directa y técnica."""
 
 def groq_call(prompt, system=None, max_tokens=600):
     try:
@@ -660,16 +664,18 @@ elif st.session_state.tab == "NOTICIAS":
     q = st.text_input("", placeholder="🔍  Buscar por tema, fuente o empresa...",
                       label_visibility="collapsed")
 
-    # Filtros: st.pills nativo
-    ff = st.pills(
-        "Filtro",
-        ["TODOS", "🔴 ALTO", "🟡 MEDIO", "🟢 BAJO"],
-        default="TODOS",
-        selection_mode="single",
-        label_visibility="collapsed",
-        key="noticias_filtro_pills"
-    )
-    ff = ff.split(" ")[-1] if ff else "TODOS"
+    # Filtros: 4 botones nativos
+    ff = st.session_state.noticias_filtro
+    opciones = ["TODOS", "ALTO", "MEDIO", "BAJO"]
+    estilos  = ["filter-todos", "filter-alto", "filter-medio", "filter-bajo"]
+    fcols = st.columns(4, gap="small")
+    for col, opt, cls in zip(fcols, opciones, estilos):
+        with col:
+            st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
+            if st.button(opt, key=f"fn_{opt}", use_container_width=True):
+                st.session_state.noticias_filtro = opt
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
     # Aplicar filtros
     feed = df.copy() if len(df) > 0 else pd.DataFrame()
@@ -744,9 +750,10 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
     if ck not in st.session_state.impacts:
         with st.spinner("Analizando impacto..."):
             imp = groq_call(
-                f'Eres especialista en el proyecto Conga de {st.session_state.company} en Cajamarca, Perú. '
-                f'Analiza el impacto DIRECTO de esta noticia sobre {st.session_state.company}. '
-                f'Si no involucra directamente, explica si podría afectarle indirectamente. '
+                f'Analiza el impacto DIRECTO de esta noticia sobre {st.session_state.company} Perú '
+                f'(subsidiaria peruana con proyectos de exploración en Cajamarca, distinta a la matriz canadiense). '
+                f'Si no involucra directamente a {st.session_state.company} Perú, explica si podría afectarle '
+                f'indirectamente por el contexto regional o sectorial. '
                 f'Empieza con una palabra: POSITIVO, NEGATIVO o NEUTRO, seguido de dos puntos. Máx 4 oraciones.\n'
                 f'Noticia: "{row["titulo"]}"',
                 system=GEO_PERSONA, max_tokens=300
