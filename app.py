@@ -109,15 +109,13 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
     flex: 1 !important;
     padding: 0 !important;
 }
-/* Botón lupa invisible sobre el ícono HTML */
-[data-testid="stButton"]:has(button[data-testid="stBaseButton-secondary"][title=""]) {
-    position: relative !important;
-    margin-top: -38px !important;
-    height: 38px !important;
-    opacity: 0 !important;
-    z-index: 20 !important;
-    width: 38px !important;
-    float: right !important;
+/* Última columna (lupa) — más compacta y sin uppercase */
+div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"]) > div[data-testid="stColumn"]:last-child button {
+    font-size: 14px !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    padding: 6px 0 !important;
+    color: #6B7A8D !important;
 }
 
 /* ── GOLD LINE ────────────────────────────────────────────────────────────── */
@@ -125,7 +123,7 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 .divider   { height: 1px; background: #E0D9CE; margin: 4px 0 14px; }
 
 /* ── SCREEN ───────────────────────────────────────────────────────────────── */
-.screen { padding: 18px 20px 60px; }
+.screen { padding: 8px 20px 60px; }
 
 /* ── SECTION LABEL ────────────────────────────────────────────────────────── */
 .slabel {
@@ -243,11 +241,6 @@ input { font-family: 'DM Sans', sans-serif !important; font-size: 13px !importan
     box-shadow: none !important; transition: all 0.18s !important;
 }
 .stButton > button:hover { background: #1B2A4A !important; color: #F5F0E8 !important; border-color: #1B2A4A !important; }
-/* Ocultar botón real de búsqueda — solo visible el ícono HTML */
-[data-testid="stButton"]:has(button[title="Buscar"]) {
-    position: absolute !important; opacity: 0 !important;
-    pointer-events: none !important; height: 0 !important;
-}
 
 /* ── SKELETON ─────────────────────────────────────────────────────────────── */
 .sk { background: linear-gradient(90deg,#E8E2D6 25%,#F0EBE0 50%,#E8E2D6 75%); background-size:200% 100%; animation:sh 1.4s infinite; border-radius:6px; }
@@ -592,39 +585,32 @@ st.markdown(f"""
       <div class="logo">El Reducto</div>
       <div class="logo-sub">{weekday_es} {today_label} · Lima</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span class="search-icon-btn" id="lupa-trigger">&#128269;</span>
-      <div class="badge">
-        <span class="badge-dot" style="background:{dot_color};"></span>
-        <span class="badge-txt" style="color:{dot_color};">{alert_count} alertas hoy</span>
-      </div>
+    <div class="badge">
+      <span class="badge-dot" style="background:{dot_color};"></span>
+      <span class="badge-txt" style="color:{dot_color};">{alert_count} alertas hoy</span>
     </div>
   </div>
 </div>""", unsafe_allow_html=True)
 
-# Botón lupa invisible — CSS lo posiciona sobre el ícono HTML del topbar
-if st.button("buscar", key="lupa_btn"):
-    if st.session_state.tab != "BUSCAR":
-        st.session_state.tab = "BUSCAR"
-        st.session_state.sel = None
-        st.rerun()
-
 current = st.session_state.prev_tab if st.session_state.tab == "DETALLE" else st.session_state.tab
 
-# Nav: 4 tabs + lupa buscar
-nav_cols = st.columns(len(NAV), gap="small")
-for col, t in zip(nav_cols, NAV):
+# Nav: 4 tabs + columna lupa (más estrecha)
+nav_cols = st.columns([1,1,1,1,0.45], gap="small")
+nav_items = NAV + ["BUSCAR"]
+for col, t in zip(nav_cols, nav_items):
     with col:
-        is_active = (current == t)
+        is_active = (current == t) or (t == "BUSCAR" and st.session_state.tab == "BUSCAR")
         btn_key = f"nav_active_{t}" if is_active else f"nav_{t}"
-        if st.button(t, key=btn_key, use_container_width=True):
-            if t != current:
-                st.session_state.tab = t
+        label = "&#x1F50D;" if t == "BUSCAR" else t
+        if st.button(label, key=btn_key, use_container_width=True):
+            dest = t
+            if dest != current:
+                st.session_state.tab = dest
                 st.session_state.sel = None
                 st.rerun()
 
 # Underline dorado en tab activo via nth-child dinámico
-nav_idx = (NAV.index(current) + 1) if current in NAV else 1
+nav_idx = (nav_items.index(current) + 1) if current in nav_items else 1
 st.markdown(f"""<style>
 div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"])
   > div[data-testid="stColumn"]:nth-child({nav_idx}) button {{
@@ -717,26 +703,11 @@ elif st.session_state.tab == "FEED":
         unsafe_allow_html=True
     )
 
-    # Botones de filtro como pills compactos en una fila
+    # Botones de filtro — solo st.button, sin HTML duplicado
     cols_f = st.columns(4, gap="small")
     for col_f, opt in zip(cols_f, FOPTS):
         with col_f:
-            active = ff == opt
-            color  = fcol[opt]
-            bg     = color if active else "transparent"
-            border = color if active else "#E0D9CE"
-            txt    = "#fff" if active else "#6B7A8D"
-            st.markdown(
-                f'<div style="text-align:center;">'
-                f'<span style="display:block;padding:4px 2px;border-radius:100px;'
-                f'border:1px solid {border};background:{bg};color:{txt};'
-                f'font-size:7.5px;font-weight:600;letter-spacing:0.1em;'
-                f'text-transform:uppercase;font-family:\'DM Sans\',sans-serif;">{opt}</span>'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-            if st.button(opt, key=f"ff_{opt}", use_container_width=True,
-                         help=f"Filtrar por {opt}"):
+            if st.button(opt, key=f"ff_{opt}", use_container_width=True):
                 st.session_state['feed_f'] = opt
                 st.rerun()
 
