@@ -236,19 +236,33 @@ div[data-baseweb="input"]:focus-within { border-color: #0F1F3D !important; }
 input { font-family: 'IBM Plex Sans', sans-serif !important; font-size: 13px !important; color: #0F1F3D !important; background: transparent !important; }
 
 /* ── DETAIL ────────────────────────────────────────────────────────────────── */
-.ds { font-family: 'IBM Plex Mono', monospace !important; font-size: 8px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 10px; }
-.dt { font-family: 'Playfair Display', serif !important; font-weight: 700; font-size: 26px; line-height: 1.1; color: #0F1F3D; letter-spacing: -0.03em; margin-bottom: 14px; }
+.ds { font-family: 'IBM Plex Mono', monospace !important; font-size: 7.5px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pill-inline { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; }
+.pill-inline-alto  { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
+.pill-inline-medio { background: #FFFBEB; color: #92670A; border: 1px solid #FDE68A; }
+.pill-inline-bajo  { background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
+.dt { font-family: 'Playfair Display', serif !important; font-weight: 700; font-size: 24px; line-height: 1.15; color: #0F1F3D; letter-spacing: -0.02em; margin-bottom: 16px; }
 .dt em { font-style: italic; font-weight: 400; }
-.summary-box { background: #fff; border-left: 3px solid #0F1F3D; border-radius: 0 10px 10px 0; padding: 14px 16px; margin-bottom: 14px; font-size: 12px; color: #374151; line-height: 1.75; }
-.source-btn { font-size: 11px; color: #0F1F3D; border-bottom: 1px solid #0F1F3D; padding-bottom: 1px; text-decoration: none; display: inline-block; margin-bottom: 18px; }
+.detail-divider { height: 1px; background: #E5E2DB; margin: 4px 0 14px; }
+.summary-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid #E5E2DB; }
+.summary-card-label { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #9CA3AF; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 10px; }
+.summary-card-text { font-size: 12.5px; color: #1C1C1E; line-height: 1.8; }
+.source-btn { font-family: 'IBM Plex Mono', monospace !important; font-size: 7.5px; color: #B8860B; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; display: block; margin-top: 12px; }
 .gdiv { height: 1px; background: linear-gradient(to right, #B8860B, transparent); margin: 4px 0 16px; }
-.ai-box { background: #0F1F3D; border-radius: 14px; padding: 16px; margin-top: 12px; }
-.ai-label { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #3A4A62; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; }
-.ai-impact { font-family: 'IBM Plex Mono', monospace !important; font-size: 8.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
+.ai-box { background: #0F1F3D; border-radius: 14px; padding: 18px; margin-top: 12px; }
+.ai-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ai-label { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #3A4A62; letter-spacing: 0.14em; text-transform: uppercase; }
+.ai-badge { font-family: 'IBM Plex Mono', monospace !important; font-size: 7.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border-radius: 4px; }
+.ai-badge-neg { background: rgba(248,113,113,0.15); color: #F87171; border: 1px solid rgba(248,113,113,0.25); }
+.ai-badge-pos { background: rgba(74,222,128,0.12); color: #4ADE80; border: 1px solid rgba(74,222,128,0.25); }
+.ai-badge-neu { background: rgba(138,154,176,0.15); color: #8A9AB0; border: 1px solid rgba(138,154,176,0.25); }
+.ai-divider { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 12px; }
+.ai-impact { display: none; }
 .ai-neg { color: #F87171; } .ai-pos { color: #4ADE80; } .ai-neu { color: #8A9AB0; }
-.ai-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-.ai-dot-neg { background: #F87171; } .ai-dot-pos { background: #4ADE80; } .ai-dot-neu { background: #8A9AB0; }
-.ai-text { font-size: 11px; color: #8A9AB0; line-height: 1.75; }
+.ai-dot { display: none; }
+.ai-text { font-size: 11.5px; color: #8A9AB0; line-height: 1.85; }
+.ai-text p { margin-bottom: 8px; }
+.ai-text p:last-child { margin-bottom: 0; }
 
 /* ── RADAR ─────────────────────────────────────────────────────────────────── */
 .pulse-card { background: #0F1F3D; border-radius: 16px; padding: 28px 20px; margin-bottom: 18px; text-align: center; }
@@ -732,44 +746,50 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
         st.session_state.sel = None
         st.rerun()
 
+    riesgo = row['riesgo']
+    pill_cls = {'ALTO': 'pill-inline-alto', 'MEDIO': 'pill-inline-medio'}.get(riesgo, 'pill-inline-bajo')
     l1, l2 = split_title(limpiar_titulo_display(row['titulo']))
+
+    # Header: fuente + fecha + pill en una línea, luego título
     st.markdown(f"""
-    <div class="ds" style="margin-top:14px;">{row['fuente']} · {row['fecha']}</div>
+    <div class="ds" style="margin-top:14px;">
+      {row['fuente']} · {row['fecha']}
+      <span class="pill-inline {pill_cls}">{riesgo}</span>
+    </div>
     <div class="dt">{l1}<br><em>{l2}</em></div>
-    {pill(row['riesgo'])}
-    <div style="height:16px;"></div>""", unsafe_allow_html=True)
+    <div class="detail-divider"></div>""", unsafe_allow_html=True)
 
-    st.markdown('<div class="gdiv"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="slabel">Resumen de la noticia</div>', unsafe_allow_html=True)
-
+    # Resumen como card
     if art_id not in st.session_state.summaries:
         with st.spinner("Generando resumen..."):
             r = groq_call(
-                f'Resume en 3 oraciones claras esta noticia minera peruana, sin preamble: "{row["titulo"]}"',
+                f'Resume en 3 oraciones claras y directas esta noticia minera peruana. '
+                f'Sin preamble, sin repetir el título. Solo los hechos clave:\n"{row["titulo"]}"',
                 system=GEO_PERSONA, max_tokens=200
             )
             st.session_state.summaries[art_id] = r or "No se pudo generar el resumen."
 
-    st.markdown(f'<div class="summary-box">{st.session_state.summaries[art_id]}</div>',
-                unsafe_allow_html=True)
+    resumen = st.session_state.summaries[art_id]
+    url_html = f'<a href="{row["url"]}" target="_blank" class="source-btn">Ver fuente original ↗</a>' if row.get('url') and str(row['url']).startswith('http') else ''
+    st.markdown(f"""
+    <div class="summary-card">
+      <div class="summary-card-label">Resumen</div>
+      <div class="summary-card-text">{resumen}</div>
+      {url_html}
+    </div>""", unsafe_allow_html=True)
 
-    if row.get('url') and str(row['url']).startswith('http'):
-        st.markdown(f'<a href="{row["url"]}" target="_blank" class="source-btn">Ver fuente original ↗</a>',
-                    unsafe_allow_html=True)
-
-    st.markdown('<div class="gdiv"></div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="slabel">Impacto para {st.session_state.company}</div>',
+    # Análisis de impacto
+    st.markdown(f'<div class="slabel" style="margin-top:4px;">Impacto para {st.session_state.company}</div>',
                 unsafe_allow_html=True)
 
     ck = f"{art_id}_{st.session_state.company}"
     if ck not in st.session_state.impacts:
         with st.spinner("Analizando impacto..."):
             imp = groq_call(
-                f'Analiza el impacto DIRECTO de esta noticia sobre {st.session_state.company} Perú '
+                f'Analiza el impacto de esta noticia sobre {st.session_state.company} Perú '
                 f'(subsidiaria peruana con proyectos de exploración en Cajamarca, distinta a la matriz canadiense). '
-                f'Si no involucra directamente a {st.session_state.company} Perú, explica si podría afectarle '
-                f'indirectamente por el contexto regional o sectorial. '
-                f'Empieza con una palabra: POSITIVO, NEGATIVO o NEUTRO, seguido de dos puntos. Máx 4 oraciones.\n'
+                f'Empieza SOLO con una palabra: POSITIVO, NEGATIVO o NEUTRO, seguido de dos puntos. '
+                f'Luego escribe exactamente 2 párrafos cortos separados por doble salto de línea. Sin bullets.\n'
                 f'Noticia: "{row["titulo"]}"',
                 system=GEO_PERSONA, max_tokens=300
             )
@@ -777,16 +797,22 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
 
     txt = st.session_state.impacts[ck]
     u   = txt.upper()
-    if u.startswith("POSITIVO"):   ic, il = "ai-pos", "▲ IMPACTO POSITIVO"
-    elif u.startswith("NEGATIVO"): ic, il = "ai-neg", "▼ IMPACTO NEGATIVO"
-    else:                          ic, il = "ai-neu", "● IMPACTO NEUTRO"
-    dot_cls = {"ai-pos": "ai-dot-pos", "ai-neg": "ai-dot-neg", "ai-neu": "ai-dot-neu"}.get(ic)
+    if u.startswith("POSITIVO"):   badge_cls, badge_txt = "ai-badge-pos", "▲ Positivo"
+    elif u.startswith("NEGATIVO"): badge_cls, badge_txt = "ai-badge-neg", "▼ Negativo"
+    else:                          badge_cls, badge_txt = "ai-badge-neu", "● Neutro"
+
+    # Convertir párrafos en <p> tags
+    parrafos = [p.strip() for p in txt.split('\n\n') if p.strip()]
+    txt_html  = ''.join(f'<p>{p}</p>' for p in parrafos)
+
     st.markdown(f"""
     <div class="ai-box">
-      <div class="ai-label">Análisis IA · Especialista en Minería Peruana</div>
-      <div class="ai-impact {ic}"><span class="ai-dot {dot_cls}"></span>{il}</div>
-      <div style="height:1px;background:rgba(255,255,255,0.06);margin:10px 0;"></div>
-      <div class="ai-text">{txt}</div>
+      <div class="ai-header">
+        <div class="ai-label">Análisis IA · Minería Peruana</div>
+        <div class="ai-badge {badge_cls}">{badge_txt}</div>
+      </div>
+      <div class="ai-divider"></div>
+      <div class="ai-text">{txt_html}</div>
     </div>""", unsafe_allow_html=True)
 
 
