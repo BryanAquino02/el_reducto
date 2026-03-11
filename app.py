@@ -384,7 +384,7 @@ def es_noticia_colombia(titulo, fuente):
     texto = (titulo + ' ' + fuente).lower()
     return any(t in texto for t in EXCLUIR_TERMINOS)
 
-
+def fuente_rank(nombre):
     n = nombre.lower()
     for k, v in FUENTE_RANK.items():
         if k in n: return v
@@ -731,14 +731,47 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
         st.session_state.sel = None
         st.rerun()
 
+    # ── META STRIP ──
+    risk_badge = {
+        'ALTO':  'background:#FEF2F2;color:#B91C1C;border:1px solid #FECACA;',
+        'MEDIO': 'background:#FFFBEB;color:#92670A;border:1px solid #FDE68A;',
+        'BAJO':  'background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;',
+    }.get(row['riesgo'], 'background:#F0FDF4;color:#166534;border:1px solid #BBF7D0;')
+
+    st.markdown(f"""
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:18px 0 14px;border-bottom:1px solid #E5E2DB;margin-top:14px;">
+      <div style="display:flex;align-items:center;gap:7px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#B8860B;flex-shrink:0;"></div>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;
+                     color:#0F1F3D;letter-spacing:0.08em;text-transform:uppercase;">
+          {row['fuente']}
+        </span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#D1D5DB;">·</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:9px;color:#9CA3AF;
+                     letter-spacing:0.06em;">{row['fecha']}</span>
+      </div>
+      <span style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;font-weight:500;
+                   letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;
+                   border-radius:4px;{risk_badge}">
+        ● {row['riesgo']}
+      </span>
+    </div>""", unsafe_allow_html=True)
+
+    # ── HEADLINE con barra lateral de riesgo ──
+    bar_color = {'ALTO': '#B91C1C', 'MEDIO': '#F59E0B', 'BAJO': '#22C55E'}.get(row['riesgo'], '#22C55E')
     l1, l2 = split_title(row['titulo'])
     st.markdown(f"""
-    <div class="ds" style="margin-top:14px;">{row['fuente']} · {row['fecha']}</div>
-    <div class="dt">{l1}<br><em>{l2}</em></div>
-    {pill(row['riesgo'])}
-    <div style="height:16px;"></div>""", unsafe_allow_html=True)
+    <div style="padding:20px 0 0 14px;border-left:3px solid {bar_color};margin-top:20px;">
+      <div style="font-family:'Playfair Display',serif;font-size:23px;font-weight:700;
+                  color:#0F1F3D;line-height:1.18;letter-spacing:-0.02em;">
+        {l1}<br><em style="font-style:italic;font-weight:400;">{l2}</em>
+      </div>
+    </div>""", unsafe_allow_html=True)
 
-    st.markdown('<div class="gdiv"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="gdiv" style="margin-top:20px;"></div>', unsafe_allow_html=True)
+
+    # ── RESUMEN ──
     st.markdown('<div class="slabel">Resumen de la noticia</div>', unsafe_allow_html=True)
 
     if art_id not in st.session_state.summaries:
@@ -749,14 +782,25 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
             )
             st.session_state.summaries[art_id] = r or "No se pudo generar el resumen."
 
-    st.markdown(f'<div class="summary-box">{st.session_state.summaries[art_id]}</div>',
-                unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="font-size:13px;color:#374151;line-height:1.85;margin-bottom:14px;">
+      {st.session_state.summaries[art_id]}
+    </div>""", unsafe_allow_html=True)
 
     if row.get('url') and str(row['url']).startswith('http'):
-        st.markdown(f'<a href="{row["url"]}" target="_blank" class="source-btn">Ver fuente original ↗</a>',
-                    unsafe_allow_html=True)
+        st.markdown(f"""
+        <a href="{row['url']}" target="_blank"
+           style="display:inline-flex;align-items:center;gap:5px;
+                  font-family:'IBM Plex Mono',monospace;font-size:8.5px;
+                  letter-spacing:0.08em;text-transform:uppercase;color:#0F1F3D;
+                  text-decoration:none;border-bottom:1px solid #0F1F3D;
+                  padding-bottom:1px;opacity:0.65;">
+          Ver fuente original ↗
+        </a>""", unsafe_allow_html=True)
 
-    st.markdown('<div class="gdiv"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="gdiv" style="margin-top:20px;"></div>', unsafe_allow_html=True)
+
+    # ── IMPACTO IA ──
     st.markdown(f'<div class="slabel">Impacto para {st.session_state.company}</div>',
                 unsafe_allow_html=True)
 
@@ -775,16 +819,35 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
 
     txt = st.session_state.impacts[ck]
     u   = txt.upper()
-    if u.startswith("POSITIVO"):   ic, il = "ai-pos", "▲ IMPACTO POSITIVO"
-    elif u.startswith("NEGATIVO"): ic, il = "ai-neg", "▼ IMPACTO NEGATIVO"
-    else:                          ic, il = "ai-neu", "● IMPACTO NEUTRO"
-    dot_cls = {"ai-pos": "ai-dot-pos", "ai-neg": "ai-dot-neg", "ai-neu": "ai-dot-neu"}.get(ic)
+    if u.startswith("POSITIVO"):
+        verdict_style = 'background:rgba(74,222,128,0.12);color:#4ADE80;border:1px solid rgba(74,222,128,0.25);'
+        verdict_label = '▲ Positivo'
+    elif u.startswith("NEGATIVO"):
+        verdict_style = 'background:rgba(248,113,113,0.12);color:#F87171;border:1px solid rgba(248,113,113,0.25);'
+        verdict_label = '▼ Negativo'
+    else:
+        verdict_style = 'background:rgba(138,154,176,0.15);color:#8A9AB0;border:1px solid rgba(138,154,176,0.25);'
+        verdict_label = '● Neutro'
+
     st.markdown(f"""
-    <div class="ai-box">
-      <div class="ai-label">Análisis IA · Especialista en Minería Peruana</div>
-      <div class="ai-impact {ic}"><span class="ai-dot {dot_cls}"></span>{il}</div>
-      <div style="height:1px;background:rgba(255,255,255,0.06);margin:10px 0;"></div>
-      <div class="ai-text">{txt}</div>
+    <div style="background:#0F1F3D;border-radius:16px;padding:22px 20px 20px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:#6B7A8D;
+                  letter-spacing:0.16em;text-transform:uppercase;margin-bottom:16px;">
+        Análisis IA · Especialista en Minería Peruana
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <span style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;
+                     color:#F5F0E8;letter-spacing:-0.01em;">
+          {st.session_state.company}
+        </span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:500;
+                     letter-spacing:0.1em;text-transform:uppercase;padding:5px 11px;
+                     border-radius:100px;{verdict_style}">
+          {verdict_label}
+        </span>
+      </div>
+      <div style="height:1px;background:rgba(255,255,255,0.06);margin-bottom:16px;"></div>
+      <div style="font-size:12px;color:#A8B8CC;line-height:1.85;">{txt}</div>
     </div>""", unsafe_allow_html=True)
 
 
