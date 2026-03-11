@@ -351,18 +351,26 @@ def groq_call(prompt, system=None, max_tokens=600):
 #  FETCH & CLASSIFY
 # ══════════════════════════════════════════════════════════════════════════════
 QUERIES = [
-    "mineria+metalica+Cajamarca+conflicto", "mineria+metalica+Cajamarca+comunidades",
-    "protesta+minera+Cajamarca",            "huelga+minera+Cajamarca",
-    "mina+oro+Cajamarca+conflicto",         "rondas+campesinas+mineria+metalica",
-    "IAMGOLD+Peru",                         "IAMGOLD+Cajamarca",
-    "Yanacocha+Cajamarca+conflicto",        "Buenaventura+minera+Peru+conflicto",
-    "Southern+Copper+Peru+conflicto",       "conflicto+minero+metalico+Peru",
-    "paro+minero+Peru",                     "bloqueo+minero+Peru",
-    "comunidades+mineria+metalica+Peru",    "conflicto+socioambiental+mineria+Peru",
-    "MINEM+mineria+metalica+Peru",          "OEFA+fiscalizacion+mineria+metalica",
-    "inversion+minera+metalica+Peru",       "concesion+minera+metalica+Peru",
-    "mineria+metalica+La+Libertad+Peru",    "mineria+metalica+Ancash+Peru",
-    "mineria+metalica+Apurimac+Peru",       "mineria+metalica+Arequipa+Peru",
+    # Cajamarca — foco principal
+    "mineria+Cajamarca+conflicto",      "mineria+Cajamarca+comunidades",
+    "protesta+minera+Cajamarca",        "huelga+minera+Cajamarca",
+    "mina+oro+Cajamarca",               "rondas+campesinas+mineria",
+    # IAMGOLD directo
+    "IAMGOLD+Peru",                     "IAMGOLD+Cajamarca",
+    # Empresas mineras metalicas Peru
+    "Yanacocha+Cajamarca",              "Buenaventura+minera+Peru",
+    "Southern+Copper+Peru",             "Antamina+Peru",
+    "Las+Bambas+conflicto",             "Cerro+Verde+Arequipa",
+    # Conflictos y paros mineros
+    "conflicto+minero+Peru",            "paro+minero+Peru",
+    "bloqueo+minero+Peru",              "protesta+minera+Peru",
+    "comunidades+mineria+Peru",         "conflicto+socioambiental+mineria",
+    # Regulacion mineria metalica
+    "MINEM+mineria+Peru",               "OEFA+mineria+Peru",
+    "inversion+minera+Peru",            "concesion+minera+Peru",
+    # Regiones mineras metalicas
+    "mineria+La+Libertad+Peru",         "mineria+Ancash+Peru",
+    "mineria+Apurimac+Peru",            "mineria+Arequipa+Peru",
 ]
 
 FUENTE_RANK = {}
