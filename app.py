@@ -137,19 +137,17 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 
 /* ── FEATURED CARD ─────────────────────────────────────────────────────────── */
 .fc { background: #0F1F3D; border-radius: 16px; padding: 20px; margin-bottom: 22px; }
-.fc-meta { font-family: 'IBM Plex Mono', monospace !important; font-size: 8px; color: #B8C5D6; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+.fc-meta { font-family: 'IBM Plex Mono', monospace !important; font-size: 8px; color: #4A5A72; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
 .fc-title { font-family: 'Playfair Display', serif !important; font-size: 19px; font-weight: 700; color: #F5F0E8; line-height: 1.2; margin-bottom: 16px; }
 .fc-title em { font-style: italic; font-weight: 400; }
-.fc-sep { height: 1px; background: rgba(255,255,255,0.12); margin-bottom: 14px; }
+.fc-sep { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 14px; }
 .fc-stats { display: flex; gap: 20px; margin-bottom: 4px; }
-.fc-sl { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #8A9AB0; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
+.fc-sl { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #4A5A72; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
 .fc-sv { font-family: 'IBM Plex Mono', monospace !important; font-size: 12px; font-weight: 500; color: #F5F0E8; }
 .fc-sv.r { color: #F87171 !important; }
 
 /* Botón abrir noticia dentro del fc */
-.fc-open-btn button,
-.fc-open-btn > div > button,
-.fc-open-btn [data-testid="stBaseButton-secondary"] {
+.fc-open-btn > div > button {
     background: #B8860B !important;
     border: none !important;
     border-radius: 100px !important;
@@ -167,9 +165,7 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
     line-height: 1.4 !important;
     margin-top: 12px !important;
 }
-.fc-open-btn button:hover,
-.fc-open-btn > div > button:hover,
-.fc-open-btn [data-testid="stBaseButton-secondary"]:hover { background: #A07609 !important; }
+.fc-open-btn > div > button:hover { background: #A07609 !important; }
 
 /* ── PILLS ─────────────────────────────────────────────────────────────────── */
 .pill {
@@ -236,33 +232,19 @@ div[data-baseweb="input"]:focus-within { border-color: #0F1F3D !important; }
 input { font-family: 'IBM Plex Sans', sans-serif !important; font-size: 13px !important; color: #0F1F3D !important; background: transparent !important; }
 
 /* ── DETAIL ────────────────────────────────────────────────────────────────── */
-.ds { font-family: 'IBM Plex Mono', monospace !important; font-size: 7.5px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.pill-inline { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; }
-.pill-inline-alto  { background: #FEF2F2; color: #B91C1C; border: 1px solid #FECACA; }
-.pill-inline-medio { background: #FFFBEB; color: #92670A; border: 1px solid #FDE68A; }
-.pill-inline-bajo  { background: #F0FDF4; color: #166534; border: 1px solid #BBF7D0; }
-.dt { font-family: 'Playfair Display', serif !important; font-weight: 700; font-size: 24px; line-height: 1.15; color: #0F1F3D; letter-spacing: -0.02em; margin-bottom: 16px; }
+.ds { font-family: 'IBM Plex Mono', monospace !important; font-size: 8px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 10px; }
+.dt { font-family: 'Playfair Display', serif !important; font-weight: 700; font-size: 26px; line-height: 1.1; color: #0F1F3D; letter-spacing: -0.03em; margin-bottom: 14px; }
 .dt em { font-style: italic; font-weight: 400; }
-.detail-divider { height: 1px; background: #E5E2DB; margin: 4px 0 14px; }
-.summary-card { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 12px; border: 1px solid #E5E2DB; }
-.summary-card-label { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #9CA3AF; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 10px; }
-.summary-card-text { font-size: 12.5px; color: #1C1C1E; line-height: 1.8; }
-.source-btn { font-family: 'IBM Plex Mono', monospace !important; font-size: 7.5px; color: #B8860B; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; display: block; margin-top: 12px; }
+.summary-box { background: #fff; border-left: 3px solid #0F1F3D; border-radius: 0 10px 10px 0; padding: 14px 16px; margin-bottom: 14px; font-size: 12px; color: #374151; line-height: 1.75; }
+.source-btn { font-size: 11px; color: #0F1F3D; border-bottom: 1px solid #0F1F3D; padding-bottom: 1px; text-decoration: none; display: inline-block; margin-bottom: 18px; }
 .gdiv { height: 1px; background: linear-gradient(to right, #B8860B, transparent); margin: 4px 0 16px; }
-.ai-box { background: #0F1F3D; border-radius: 14px; padding: 18px; margin-top: 12px; }
-.ai-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.ai-label { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #3A4A62; letter-spacing: 0.14em; text-transform: uppercase; }
-.ai-badge { font-family: 'IBM Plex Mono', monospace !important; font-size: 7.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 9px; border-radius: 4px; }
-.ai-badge-neg { background: rgba(248,113,113,0.15); color: #F87171; border: 1px solid rgba(248,113,113,0.25); }
-.ai-badge-pos { background: rgba(74,222,128,0.12); color: #4ADE80; border: 1px solid rgba(74,222,128,0.25); }
-.ai-badge-neu { background: rgba(138,154,176,0.15); color: #8A9AB0; border: 1px solid rgba(138,154,176,0.25); }
-.ai-divider { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 12px; }
-.ai-impact { display: none; }
+.ai-box { background: #0F1F3D; border-radius: 14px; padding: 16px; margin-top: 12px; }
+.ai-label { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #3A4A62; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; }
+.ai-impact { font-family: 'IBM Plex Mono', monospace !important; font-size: 8.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; display: flex; align-items: center; gap: 7px; }
 .ai-neg { color: #F87171; } .ai-pos { color: #4ADE80; } .ai-neu { color: #8A9AB0; }
-.ai-dot { display: none; }
-.ai-text { font-size: 11.5px; color: #8A9AB0; line-height: 1.85; }
-.ai-text p { margin-bottom: 8px; }
-.ai-text p:last-child { margin-bottom: 0; }
+.ai-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
+.ai-dot-neg { background: #F87171; } .ai-dot-pos { background: #4ADE80; } .ai-dot-neu { background: #8A9AB0; }
+.ai-text { font-size: 11px; color: #8A9AB0; line-height: 1.75; }
 
 /* ── RADAR ─────────────────────────────────────────────────────────────────── */
 .pulse-card { background: #0F1F3D; border-radius: 16px; padding: 28px 20px; margin-bottom: 18px; text-align: center; }
@@ -313,47 +295,23 @@ input { font-family: 'IBM Plex Sans', sans-serif !important; font-size: 13px !im
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  DB — persistencia en GitHub
+#  DB
 # ══════════════════════════════════════════════════════════════════════════════
-GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
-GITHUB_REPO  = st.secrets.get("GITHUB_REPO", "")   # formato: "usuario/repo"
-GITHUB_FILE  = "news_db_v5.json"
-GITHUB_API   = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
-GITHUB_HEADERS = {
-    "Authorization": f"token {GITHUB_TOKEN}",
-    "Accept": "application/vnd.github.v3+json"
-}
+def init_db():
+    if not os.path.exists(DB_PATH):
+        with open(DB_PATH, 'w') as f:
+            json.dump({'date': '', 'articles': [], 'history': []}, f)
 
 def load_db():
-    """Lee la DB desde GitHub. Si falla, devuelve estructura vacía."""
     try:
-        r = requests.get(GITHUB_API, headers=GITHUB_HEADERS, timeout=10)
-        if r.status_code == 200:
-            import base64
-            content = base64.b64decode(r.json()['content']).decode('utf-8')
-            return json.loads(content)
-        return {'date': '', 'articles': [], 'history': []}
+        with open(DB_PATH) as f: return json.load(f)
     except:
         return {'date': '', 'articles': [], 'history': []}
 
 def save_db(data):
-    """Guarda la DB en GitHub via commit automático."""
-    try:
-        import base64
-        content = base64.b64encode(json.dumps(data, ensure_ascii=False).encode('utf-8')).decode('utf-8')
-        # Obtener SHA del archivo actual (necesario para hacer update)
-        r = requests.get(GITHUB_API, headers=GITHUB_HEADERS, timeout=10)
-        sha = r.json().get('sha', '') if r.status_code == 200 else ''
-        payload = {
-            "message": f"update db {data.get('date', '')}",
-            "content": content,
-        }
-        if sha:
-            payload["sha"] = sha
-        res = requests.put(GITHUB_API, headers=GITHUB_HEADERS, json=payload, timeout=15)
-        logging.warning(f"GitHub save_db: status {res.status_code}")
-    except Exception as e:
-        logging.warning(f"GitHub save_db: {e}")
+    with open(DB_PATH, 'w') as f: json.dump(data, f)
+
+init_db()
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -361,12 +319,8 @@ def save_db(data):
 # ══════════════════════════════════════════════════════════════════════════════
 GEO_PERSONA = """Eres una ingeniera geóloga peruana con 18 años de experiencia en minería metálica,
 especializada en conflictos socioambientales en la sierra norte del Perú.
-Conoces bien la diferencia entre IAMGOLD Corp (matriz canadiense, cotiza en NYSE/TSX) e IAMGOLD Perú
-(subsidiaria con proyectos de exploración en Cajamarca). Son entidades distintas: lo que afecta a la
-matriz no necesariamente impacta las operaciones peruanas y viceversa.
-El proyecto Conga en Cajamarca es de Yanacocha (Newmont/Buenaventura), no de IAMGOLD.
-Conoces la normativa del MINEM, el OEFA y la dinámica entre empresas extractivas y comunidades campesinas.
-Eres directa y técnica."""
+Conoces el proyecto Conga de IAMGOLD en Cajamarca, la normativa del MINEM, el OEFA
+y la dinámica entre empresas extractivas y comunidades campesinas. Eres directa y técnica."""
 
 def groq_call(prompt, system=None, max_tokens=600):
     try:
@@ -389,26 +343,18 @@ def groq_call(prompt, system=None, max_tokens=600):
 #  FETCH & CLASSIFY
 # ══════════════════════════════════════════════════════════════════════════════
 QUERIES = [
-    # Cajamarca Peru — foco principal
-    "mineria+Cajamarca+Peru+conflicto",  "mineria+Cajamarca+Peru+comunidades",
-    "protesta+minera+Cajamarca+Peru",    "huelga+minera+Cajamarca+Peru",
-    "mina+oro+Cajamarca+Peru",           "rondas+campesinas+mineria+Peru",
-    # IAMGOLD directo
-    "IAMGOLD+Peru",                      "IAMGOLD+Cajamarca+Peru",
-    # Empresas mineras metalicas Peru
-    "Yanacocha+Cajamarca+Peru",          "Buenaventura+minera+Peru",
-    "Southern+Copper+Peru",              "Antamina+Peru",
-    "Las+Bambas+Peru+conflicto",         "Cerro+Verde+Arequipa+Peru",
-    # Conflictos y paros mineros Peru
-    "conflicto+minero+Peru",             "paro+minero+Peru",
-    "bloqueo+minero+Peru",               "protesta+minera+Peru",
-    "comunidades+mineria+Peru",          "conflicto+socioambiental+mineria+Peru",
-    # Regulacion mineria Peru
-    "MINEM+mineria+Peru",                "OEFA+mineria+Peru",
-    "inversion+minera+Peru",             "concesion+minera+Peru",
-    # Regiones mineras Peru
-    "mineria+La+Libertad+Peru",          "mineria+Ancash+Peru",
-    "mineria+Apurimac+Peru",             "mineria+Arequipa+Peru",
+    "mineria+Cajamarca+conflicto", "mineria+Cajamarca+comunidades",
+    "protesta+minera+Cajamarca",   "huelga+minera+Cajamarca",
+    "Conga+mina+Cajamarca",        "rondas+campesinas+mineria",
+    "IAMGOLD+Peru",                "IAMGOLD+Cajamarca",
+    "Yanacocha+Cajamarca",         "minera+Buenaventura+Peru",
+    "Southern+Copper+Peru",        "conflictos+mineros+Peru",
+    "paro+minero+Peru",            "bloqueo+minero+Peru",
+    "comunidades+mineria+Peru",    "conflicto+socioambiental+Peru",
+    "MINEM+Peru+mineria",          "OEFA+fiscalizacion+mineria",
+    "inversion+minera+Peru",       "concesion+minera+Peru",
+    "mineria+La+Libertad+Peru",    "mineria+Ancash+Peru",
+    "mineria+Apurimac+Peru",       "mineria+Arequipa+Peru",
 ]
 
 FUENTE_RANK = {}
@@ -426,11 +372,6 @@ def fuente_rank(nombre):
 def limpiar_titulo(t):
     t = re.sub(r'\s*[\-\u2013\u2014|]\s*[^\-\u2013\u2014|]{1,60}$', '', t)
     return re.sub(r'\s+', ' ', t).strip().lower()
-
-def limpiar_titulo_display(t):
-    """Elimina el sufijo ' - Fuente' que Google News agrega al final del titular."""
-    t = re.sub(r'\s*[\-\u2013\u2014]\s*[\w\s\.]{2,40}$', '', t)
-    return re.sub(r'\s+', ' ', t).strip()
 
 def dedup_por_fuente(articulos):
     grupos = {}
@@ -470,7 +411,7 @@ def fetch_rss(fecha_limite):
 def classify(df):
     df = df.copy()
     todos = []
-    BATCH = 15
+    BATCH = 8
     for i in range(0, min(len(df), 200), BATCH):
         lote  = df['titulo'].tolist()[i:i+BATCH]
         lista = "\n".join([f"{j+1}. {x}" for j, x in enumerate(lote)])
@@ -488,7 +429,7 @@ def classify(df):
         for _ in range(2):
             res = groq_call(prompt, max_tokens=60 + len(lote) * 10)
             if res: break
-            time.sleep(4)
+            time.sleep(1.5)
         try:
             if res:
                 s, e = res.find('['), res.rfind(']') + 1
@@ -502,7 +443,7 @@ def classify(df):
                 todos.extend(["BAJO"] * len(lote))
         except:
             todos.extend(["BAJO"] * len(lote))
-        time.sleep(3)
+        time.sleep(0.8)
     todos.extend(["BAJO"] * (len(df) - len(todos)))
     df['riesgo'] = [str(x).upper() for x in todos[:len(df)]]
     def norm(x):
@@ -522,6 +463,7 @@ def get_keywords(df, n=6):
         words.extend([w for w in re.findall(r'\b[a-záéíóúñ]{4,}\b', t.lower()) if w not in sw])
     return Counter(words).most_common(n)
 
+@st.cache_data(ttl=3600)
 def get_news():
     db    = load_db()
     today = datetime.now().strftime('%Y-%m-%d')
@@ -588,7 +530,7 @@ def news_row(row, key):
         f'<div class="rb" style="background:{rc};"></div>'
         f'<div style="flex:1;">'
         f'<div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
-        f'<div class="nt">{limpiar_titulo_display(row["titulo"])}</div>'
+        f'<div class="nt">{row["titulo"]}</div>'
         f'</div></div>',
         unsafe_allow_html=True
     )
@@ -679,7 +621,7 @@ if st.session_state.tab == "HOY":
                     unsafe_allow_html=True)
     else:
         top = df.iloc[0]
-        l1, l2 = split_title(limpiar_titulo_display(top['titulo']))
+        l1, l2 = split_title(top['titulo'])
         riesgo_color = "r" if top['riesgo'] == "ALTO" else ""
 
         st.markdown(f"""
@@ -718,16 +660,18 @@ elif st.session_state.tab == "NOTICIAS":
     q = st.text_input("", placeholder="🔍  Buscar por tema, fuente o empresa...",
                       label_visibility="collapsed")
 
-    # Filtros: st.pills nativo
-    ff = st.pills(
-        "Filtro",
-        ["TODOS", "🔴 ALTO", "🟡 MEDIO", "🟢 BAJO"],
-        default="TODOS",
-        selection_mode="single",
-        label_visibility="collapsed",
-        key="noticias_filtro_pills"
-    )
-    ff = ff.split(" ")[-1] if ff else "TODOS"
+    # Filtros: 4 botones nativos
+    ff = st.session_state.noticias_filtro
+    opciones = ["TODOS", "ALTO", "MEDIO", "BAJO"]
+    estilos  = ["filter-todos", "filter-alto", "filter-medio", "filter-bajo"]
+    fcols = st.columns(4, gap="small")
+    for col, opt, cls in zip(fcols, opciones, estilos):
+        with col:
+            st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
+            if st.button(opt, key=f"fn_{opt}", use_container_width=True):
+                st.session_state.noticias_filtro = opt
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
     # Aplicar filtros
     feed = df.copy() if len(df) > 0 else pd.DataFrame()
@@ -769,50 +713,43 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
         st.session_state.sel = None
         st.rerun()
 
-    riesgo = row['riesgo']
-    pill_cls = {'ALTO': 'pill-inline-alto', 'MEDIO': 'pill-inline-medio'}.get(riesgo, 'pill-inline-bajo')
-    l1, l2 = split_title(limpiar_titulo_display(row['titulo']))
-
-    # Header: fuente + fecha + pill en una línea, luego título
+    l1, l2 = split_title(row['titulo'])
     st.markdown(f"""
-    <div class="ds" style="margin-top:14px;">
-      {row['fuente']} · {row['fecha']}
-      <span class="pill-inline {pill_cls}">{riesgo}</span>
-    </div>
+    <div class="ds" style="margin-top:14px;">{row['fuente']} · {row['fecha']}</div>
     <div class="dt">{l1}<br><em>{l2}</em></div>
-    <div class="detail-divider"></div>""", unsafe_allow_html=True)
+    {pill(row['riesgo'])}
+    <div style="height:16px;"></div>""", unsafe_allow_html=True)
 
-    # Resumen como card
+    st.markdown('<div class="gdiv"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="slabel">Resumen de la noticia</div>', unsafe_allow_html=True)
+
     if art_id not in st.session_state.summaries:
         with st.spinner("Generando resumen..."):
             r = groq_call(
-                f'Resume en 3 oraciones claras y directas esta noticia minera peruana. '
-                f'Sin preamble, sin repetir el título. Solo los hechos clave:\n"{row["titulo"]}"',
+                f'Resume en 3 oraciones claras esta noticia minera peruana, sin preamble: "{row["titulo"]}"',
                 system=GEO_PERSONA, max_tokens=200
             )
             st.session_state.summaries[art_id] = r or "No se pudo generar el resumen."
 
-    resumen = st.session_state.summaries[art_id]
-    url_html = f'<a href="{row["url"]}" target="_blank" class="source-btn">Ver fuente original ↗</a>' if row.get('url') and str(row['url']).startswith('http') else ''
-    st.markdown(f"""
-    <div class="summary-card">
-      <div class="summary-card-label">Resumen</div>
-      <div class="summary-card-text">{resumen}</div>
-      {url_html}
-    </div>""", unsafe_allow_html=True)
+    st.markdown(f'<div class="summary-box">{st.session_state.summaries[art_id]}</div>',
+                unsafe_allow_html=True)
 
-    # Análisis de impacto
-    st.markdown(f'<div class="slabel" style="margin-top:4px;">Impacto para {st.session_state.company}</div>',
+    if row.get('url') and str(row['url']).startswith('http'):
+        st.markdown(f'<a href="{row["url"]}" target="_blank" class="source-btn">Ver fuente original ↗</a>',
+                    unsafe_allow_html=True)
+
+    st.markdown('<div class="gdiv"></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="slabel">Impacto para {st.session_state.company}</div>',
                 unsafe_allow_html=True)
 
     ck = f"{art_id}_{st.session_state.company}"
     if ck not in st.session_state.impacts:
         with st.spinner("Analizando impacto..."):
             imp = groq_call(
-                f'Analiza el impacto de esta noticia sobre {st.session_state.company} Perú '
-                f'(subsidiaria peruana con proyectos de exploración en Cajamarca, distinta a la matriz canadiense). '
-                f'Empieza SOLO con una palabra: POSITIVO, NEGATIVO o NEUTRO, seguido de dos puntos. '
-                f'Luego escribe exactamente 2 párrafos cortos separados por doble salto de línea. Sin bullets.\n'
+                f'Eres especialista en el proyecto Conga de {st.session_state.company} en Cajamarca, Perú. '
+                f'Analiza el impacto DIRECTO de esta noticia sobre {st.session_state.company}. '
+                f'Si no involucra directamente, explica si podría afectarle indirectamente. '
+                f'Empieza con una palabra: POSITIVO, NEGATIVO o NEUTRO, seguido de dos puntos. Máx 4 oraciones.\n'
                 f'Noticia: "{row["titulo"]}"',
                 system=GEO_PERSONA, max_tokens=300
             )
@@ -820,22 +757,16 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
 
     txt = st.session_state.impacts[ck]
     u   = txt.upper()
-    if u.startswith("POSITIVO"):   badge_cls, badge_txt = "ai-badge-pos", "▲ Positivo"
-    elif u.startswith("NEGATIVO"): badge_cls, badge_txt = "ai-badge-neg", "▼ Negativo"
-    else:                          badge_cls, badge_txt = "ai-badge-neu", "● Neutro"
-
-    # Convertir párrafos en <p> tags
-    parrafos = [p.strip() for p in txt.split('\n\n') if p.strip()]
-    txt_html  = ''.join(f'<p>{p}</p>' for p in parrafos)
-
+    if u.startswith("POSITIVO"):   ic, il = "ai-pos", "▲ IMPACTO POSITIVO"
+    elif u.startswith("NEGATIVO"): ic, il = "ai-neg", "▼ IMPACTO NEGATIVO"
+    else:                          ic, il = "ai-neu", "● IMPACTO NEUTRO"
+    dot_cls = {"ai-pos": "ai-dot-pos", "ai-neg": "ai-dot-neg", "ai-neu": "ai-dot-neu"}.get(ic)
     st.markdown(f"""
     <div class="ai-box">
-      <div class="ai-header">
-        <div class="ai-label">Análisis IA · Minería Peruana</div>
-        <div class="ai-badge {badge_cls}">{badge_txt}</div>
-      </div>
-      <div class="ai-divider"></div>
-      <div class="ai-text">{txt_html}</div>
+      <div class="ai-label">Análisis IA · Especialista en Minería Peruana</div>
+      <div class="ai-impact {ic}"><span class="ai-dot {dot_cls}"></span>{il}</div>
+      <div style="height:1px;background:rgba(255,255,255,0.06);margin:10px 0;"></div>
+      <div class="ai-text">{txt}</div>
     </div>""", unsafe_allow_html=True)
 
 
@@ -855,14 +786,6 @@ elif st.session_state.tab == "RADAR":
               "Semana tranquila")
 
     st.markdown('<div class="slabel" style="margin-top:18px;">Pulso · esta semana</div>', unsafe_allow_html=True)
-
-    col_titulo, col_btn = st.columns([3, 1], gap="small")
-    with col_btn:
-        if st.button("↺ Actualizar", key="radar_refresh"):
-            db = load_db()
-            db['date'] = ''
-            save_db(db)
-            st.rerun()
     st.markdown(f"""
     <div class="pulse-card">
       <div class="pulse-num">{altos}</div>
