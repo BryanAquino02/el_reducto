@@ -169,15 +169,15 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 .pbd { border: 1.5px solid #4CAF7D; color: #4CAF7D; background: rgba(255,255,255,0.05); }
 
 /* ── NEWS ITEM ────────────────────────────────────────────────────────────── */
-.ni-block { border-bottom: 1px solid #E0D9CE; }
 .ni-top { display: flex; gap: 10px; padding: 13px 0 10px; align-items: flex-start; }
+.ni-divider { height: 1px; background: #E0D9CE; margin: 0; }
 .rb { width: 3px; border-radius: 4px; align-self: stretch; flex-shrink: 0; min-height: 36px; }
-.rba { background: #A82020; } .rbm { background: #C9A84C; } .rbb { background: #2A6B42; }
 .ns { font-size: 8px; color: #A8B4C0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
 .nt { font-size: 13px; font-weight: 500; color: #1B2A4A; line-height: 1.45; margin-bottom: 7px; }
 .ni-arrow { font-size: 18px; color: #D0D8E0; align-self: center; flex-shrink: 0; transition: color 0.12s; }
-/* Botón "Ver noticia" integrado al bloque */
-.ni-block + div[data-testid="stButton"] > button {
+/* Botón "Ver noticia": anula el estilo global de botones */
+div:has(> div > .ni-top) + div[data-testid="stButton"] button,
+.ni-top ~ div[data-testid="stButton"] button {
     background: rgba(27,42,74,0.03) !important;
     border: none !important;
     border-top: 1px solid #EDE7DC !important;
@@ -186,17 +186,16 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
     font-size: 8px !important;
     font-weight: 600 !important;
     letter-spacing: 0.14em !important;
-    text-transform: uppercase !important;
     padding: 9px 0 !important;
-    width: 100% !important;
-    box-shadow: none !important;
     margin: 0 !important;
-    transition: background 0.12s, color 0.12s !important;
+    box-shadow: none !important;
 }
-.ni-block + div[data-testid="stButton"] > button:hover {
-    background: rgba(27,42,74,0.07) !important;
-    color: #1B2A4A !important;
-    border-color: #E0D9CE !important;
+/* Botón "Ver noticia" — seleccionado por su contenido de texto */
+button[data-testid="stBaseButton-secondary"]:not([data-baseweb]):is([class*="st-"]) {
+    all: unset;
+}
+div[data-testid="stButton"]:has(button p) button {
+    background: rgba(27,42,74,0.03) !important;
 }
 
 /* ── DETAIL ───────────────────────────────────────────────────────────────── */
@@ -543,19 +542,20 @@ def rbar(r):
 def news_row(row, key):
     rc = {"ALTO": "#A82020", "MEDIO": "#C9A84C", "BAJO": "#2A6B42"}.get(row["riesgo"], "#2A6B42")
     pc = {"ALTO": "pa", "MEDIO": "pm", "BAJO": "pb"}.get(row["riesgo"], "pb")
-    st.markdown(
-        f'<div class="ni-block">'
-        f'<div class="ni-top">'
-        f'<div class="rb" style="background:{rc};"></div>'
-        f'<div style="flex:1"><div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
-        f'<div class="nt">{row["titulo"]}</div>'
-        f'<span class="pill {pc}">{row["riesgo"]}</span></div>'
-        f'<div class="ni-arrow">&#8250;</div>'
-        f'</div></div>',
-        unsafe_allow_html=True
-    )
-    if st.button("Ver noticia →", key=key, use_container_width=True):
-        open_art(row); st.rerun()
+    with st.container():
+        st.markdown(
+            f'<div class="ni-top">'
+            f'<div class="rb" style="background:{rc};"></div>'
+            f'<div style="flex:1"><div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
+            f'<div class="nt">{row["titulo"]}</div>'
+            f'<span class="pill {pc}">{row["riesgo"]}</span></div>'
+            f'<div class="ni-arrow">&#8250;</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        if st.button("Ver noticia →", key=key, use_container_width=True):
+            open_art(row); st.rerun()
+        st.markdown('<div class="ni-divider"></div>', unsafe_allow_html=True)
 
 def skeleton():
     st.markdown("""
