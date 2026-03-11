@@ -323,38 +323,50 @@ Conoces el proyecto Conga de IAMGOLD en Cajamarca, la normativa del MINEM, el OE
 y la dinámica entre empresas extractivas y comunidades campesinas. Eres directa y técnica."""
 
 def groq_call(prompt, system=None, max_tokens=600):
-    try:
-        msgs = []
-        if system: msgs.append({"role": "system", "content": system})
-        msgs.append({"role": "user", "content": prompt})
-        r = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
-            json={"model": "llama-3.1-8b-instant", "messages": msgs, "max_tokens": max_tokens},
-            timeout=20
-        )
-        r.raise_for_status()
-        return r.json()['choices'][0]['message']['content']
-    except Exception as e:
-        logging.warning(f"Groq: {e}"); return None
+    msgs = []
+    if system: msgs.append({"role": "system", "content": system})
+    msgs.append({"role": "user", "content": prompt})
+    wait = 5
+    for attempt in range(4):
+        try:
+            r = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_KEY}", "Content-Type": "application/json"},
+                json={"model": "llama-3.1-8b-instant", "messages": msgs, "max_tokens": max_tokens},
+                timeout=30
+            )
+            if r.status_code == 429:
+                retry_after = int(r.headers.get("retry-after", wait))
+                logging.warning(f"Groq 429 — esperando {retry_after}s (intento {attempt+1}/4)")
+                time.sleep(retry_after)
+                wait = min(wait * 2, 60)
+                continue
+            r.raise_for_status()
+            return r.json()['choices'][0]['message']['content']
+        except Exception as e:
+            logging.warning(f"Groq: {e}")
+            if attempt < 3:
+                time.sleep(wait)
+                wait = min(wait * 2, 60)
+    return None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  FETCH & CLASSIFY
 # ══════════════════════════════════════════════════════════════════════════════
 QUERIES = [
-    "mineria+Cajamarca+conflicto", "mineria+Cajamarca+comunidades",
-    "protesta+minera+Cajamarca",   "huelga+minera+Cajamarca",
-    "Conga+mina+Cajamarca",        "rondas+campesinas+mineria",
-    "IAMGOLD+Peru",                "IAMGOLD+Cajamarca",
-    "Yanacocha+Cajamarca",         "minera+Buenaventura+Peru",
-    "Southern+Copper+Peru",        "conflictos+mineros+Peru",
-    "paro+minero+Peru",            "bloqueo+minero+Peru",
-    "comunidades+mineria+Peru",    "conflicto+socioambiental+Peru",
-    "MINEM+Peru+mineria",          "OEFA+fiscalizacion+mineria",
-    "inversion+minera+Peru",       "concesion+minera+Peru",
-    "mineria+La+Libertad+Peru",    "mineria+Ancash+Peru",
-    "mineria+Apurimac+Peru",       "mineria+Arequipa+Peru",
+    "mineria+Cajamarca+Peru+conflicto", "mineria+Cajamarca+Peru+comunidades",
+    "protesta+minera+Cajamarca+Peru",   "huelga+minera+Cajamarca+Peru",
+    "Conga+mina+Cajamarca+Peru",        "rondas+campesinas+mineria+Peru",
+    "IAMGOLD+Peru",                     "IAMGOLD+Cajamarca+Peru",
+    "Yanacocha+Cajamarca+Peru",         "minera+Buenaventura+Peru",
+    "Southern+Copper+Peru",             "conflictos+mineros+Peru",
+    "paro+minero+Peru",                 "bloqueo+minero+Peru",
+    "comunidades+mineria+Peru",         "conflicto+socioambiental+Peru",
+    "MINEM+Peru+mineria",               "OEFA+fiscalizacion+mineria+Peru",
+    "inversion+minera+Peru",            "concesion+minera+Peru",
+    "mineria+La+Libertad+Peru",         "mineria+Ancash+Peru",
+    "mineria+Apurimac+Peru",            "mineria+Arequipa+Peru",
 ]
 
 FUENTE_RANK = {}
@@ -363,7 +375,16 @@ for _f in ["el comercio","gestion","gestión","correo"]:   FUENTE_RANK[_f] = 2
 for _f in ["reuters","afp","ap news","associated press"]: FUENTE_RANK[_f] = 3
 for _f in ["proactivo","mining","mineria","andina"]:       FUENTE_RANK[_f] = 4
 
-def fuente_rank(nombre):
+EXCLUIR_TERMINOS = [
+    'cajamarca colombia', 'departamento del tolima', 'colombia',
+    'bogotá', 'medellín', 'cali', 'barranquilla',
+]
+
+def es_noticia_colombia(titulo, fuente):
+    texto = (titulo + ' ' + fuente).lower()
+    return any(t in texto for t in EXCLUIR_TERMINOS)
+
+
     n = nombre.lower()
     for k, v in FUENTE_RANK.items():
         if k in n: return v
@@ -397,6 +418,7 @@ def fetch_rss(fecha_limite):
                 fuente  = item.find('source').get_text(strip=True)  if item.find('source')  else "Google News"
                 link    = item.find('link').get_text(strip=True)    if item.find('link')    else ""
                 if not titulo or titulo in seen: continue
+                if es_noticia_colombia(titulo, fuente): continue
                 seen.add(titulo)
                 try:
                     dt = parsedate_to_datetime(pub_raw).replace(tzinfo=None)
@@ -411,7 +433,7 @@ def fetch_rss(fecha_limite):
 def classify(df):
     df = df.copy()
     todos = []
-    BATCH = 8
+    BATCH = 5  # lotes más pequeños → menos tokens por minuto
     for i in range(0, min(len(df), 200), BATCH):
         lote  = df['titulo'].tolist()[i:i+BATCH]
         lista = "\n".join([f"{j+1}. {x}" for j, x in enumerate(lote)])
@@ -425,11 +447,7 @@ def classify(df):
             f'Responde ÚNICAMENTE con un JSON array de {len(lote)} strings, en orden. '
             f'Ejemplo: ["ALTO","BAJO","MEDIO"]\nJSON:'
         )
-        res = None
-        for _ in range(2):
-            res = groq_call(prompt, max_tokens=60 + len(lote) * 10)
-            if res: break
-            time.sleep(1.5)
+        res = groq_call(prompt, max_tokens=60 + len(lote) * 10)  # groq_call ya reintenta con backoff
         try:
             if res:
                 s, e = res.find('['), res.rfind(']') + 1
@@ -443,7 +461,7 @@ def classify(df):
                 todos.extend(["BAJO"] * len(lote))
         except:
             todos.extend(["BAJO"] * len(lote))
-        time.sleep(0.8)
+        time.sleep(3)  # 3s entre lotes para respetar rate limit (30 RPM plan free)
     todos.extend(["BAJO"] * (len(df) - len(todos)))
     df['riesgo'] = [str(x).upper() for x in todos[:len(df)]]
     def norm(x):
