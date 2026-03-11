@@ -835,40 +835,133 @@ elif st.session_state.tab == "RADAR":
                     f'<div class="stat-val" style="font-size:10px;">{kws}</div></div>',
                     unsafe_allow_html=True)
 
-    # Tendencia
+    # ── TENDENCIA · barras apiladas 21 días ───────────────────────────────────
     st.markdown('<div class="gold-line" style="margin:14px 0;"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="slabel">Tendencia · últimos 14 días</div>', unsafe_allow_html=True)
+    st.markdown('<div class="slabel">Tendencia · últimos 21 días</div>', unsafe_allow_html=True)
 
     if len(df) > 0:
         dp     = df.copy()
         dp['fecha_iso'] = pd.to_datetime(dp['fecha_iso'])
-        fechas = pd.date_range(end=datetime.now(), periods=14, freq='D')
+        fechas = pd.date_range(end=datetime.now(), periods=21, freq='D')
 
         def day_count(f, r):
             return int((dp[dp['fecha_iso'].dt.strftime('%Y-%m-%d') == f.strftime('%Y-%m-%d')]['riesgo'] == r).sum())
 
-        td     = [{'f': f, 'A': day_count(f, 'ALTO'), 'M': day_count(f, 'MEDIO'), 'B': day_count(f, 'BAJO')}
-                  for f in fechas]
-        dplot  = pd.DataFrame(td)
+        td    = [{'f': f, 'A': day_count(f, 'ALTO'), 'M': day_count(f, 'MEDIO'), 'B': day_count(f, 'BAJO')}
+                 for f in fechas]
+        dplot = pd.DataFrame(td)
+        xlbls = [f.strftime('%-d %b') for f in fechas]
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=dplot['f'], y=dplot['A'], name='ALTO',
-                                 line=dict(color='#A82020', width=2.5),
-                                 fill='tozeroy', fillcolor='rgba(168,32,32,0.08)'))
-        fig.add_trace(go.Scatter(x=dplot['f'], y=dplot['M'], name='MEDIO',
-                                 line=dict(color='#C9A84C', width=1.8, dash='dot')))
-        fig.add_trace(go.Scatter(x=dplot['f'], y=dplot['B'], name='BAJO',
-                                 line=dict(color='#2A6B42', width=1.5)))
+        fig.add_trace(go.Bar(
+            x=xlbls, y=dplot['B'], name='BAJO',
+            marker_color='rgba(42,107,66,0.55)',
+            marker_line_width=0, hovertemplate='%{y} noticias BAJO<extra></extra>'
+        ))
+        fig.add_trace(go.Bar(
+            x=xlbls, y=dplot['M'], name='MEDIO',
+            marker_color='rgba(201,168,76,0.75)',
+            marker_line_width=0, hovertemplate='%{y} noticias MEDIO<extra></extra>'
+        ))
+        fig.add_trace(go.Bar(
+            x=xlbls, y=dplot['A'], name='ALTO',
+            marker_color='#A82020',
+            marker_line_width=0, hovertemplate='%{y} noticias ALTO<extra></extra>'
+        ))
         fig.update_layout(
+            barmode='stack',
             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-            font=dict(family='DM Sans', color='#6B7A8D', size=10),
-            margin=dict(l=0, r=0, t=10, b=0), height=200,
-            legend=dict(orientation='h', y=-0.4, x=0, font=dict(size=9)),
-            xaxis=dict(showgrid=False, tickformat='%d %b', tickfont=dict(size=9), color='#6B7A8D'),
-            yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.06)',
-                       zeroline=False, tickfont=dict(size=9)),
+            font=dict(family='DM Sans', color='#6B7A8D', size=9),
+            margin=dict(l=0, r=0, t=6, b=0), height=220,
+            bargap=0.25,
+            legend=dict(
+                orientation='h', y=-0.28, x=0,
+                font=dict(size=8.5), bgcolor='rgba(0,0,0,0)',
+                itemsizing='constant'
+            ),
+            xaxis=dict(
+                showgrid=False, tickfont=dict(size=8), color='#6B7A8D',
+                tickangle=0,
+                tickvals=xlbls[::7], ticktext=xlbls[::7]
+            ),
+            yaxis=dict(
+                showgrid=True, gridcolor='rgba(0,0,0,0.05)',
+                zeroline=False, tickfont=dict(size=8), title=None
+            ),
+            hoverlabel=dict(bgcolor='#1B2A4A', font_color='#F5F0E8', font_size=10),
         )
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+
+    # ── RESUMEN SEMANAL IA ────────────────────────────────────────────────────
+    st.markdown('<div class="gold-line" style="margin:14px 0;"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="slabel">Lectura semanal · IA</div>', unsafe_allow_html=True)
+
+    if 'radar_resumen' not in st.session_state:
+        st.session_state.radar_resumen = None
+    if 'radar_resumen_fecha' not in st.session_state:
+        st.session_state.radar_resumen_fecha = None
+
+    today_str2 = datetime.now().strftime('%Y-%m-%d')
+    if st.session_state.radar_resumen_fecha != today_str2 or st.session_state.radar_resumen is None:
+        if tot > 0:
+            titulos_semana = "\n".join([f"- {r['titulo']}" for _, r in dfs.head(25).iterrows()])
+            with st.spinner("Generando lectura semanal..."):
+                resumen_ia = groq_call(
+                    f'Eres analista de riesgo minero en Perú. '
+                    f'Redacta UN párrafo corto (máx 4 oraciones) resumiendo el panorama de riesgo '
+                    f'de la semana en la minería peruana basándote en estas noticias. '
+                    f'Sé directo, técnico y sin preamble:\n{titulos_semana}',
+                    system=GEO_PERSONA, max_tokens=250
+                )
+            st.session_state.radar_resumen = resumen_ia or "No se pudo generar la lectura semanal."
+            st.session_state.radar_resumen_fecha = today_str2
+        else:
+            st.session_state.radar_resumen = "Sin suficientes noticias esta semana para generar una lectura."
+
+    st.markdown(f"""
+    <div class="ai-box">
+      <div class="ai-label">Análisis IA · Especialista en Minería Peruana</div>
+      <div class="ai-text" style="margin-top:4px;">{st.session_state.radar_resumen}</div>
+    </div>""", unsafe_allow_html=True)
+
+    # ── TOP 3 NOTICIAS CRÍTICAS ───────────────────────────────────────────────
+    st.markdown('<div class="gold-line" style="margin:14px 0;"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="slabel">Alertas críticas · esta semana</div>', unsafe_allow_html=True)
+
+    top_altos = dfs[dfs['riesgo'] == 'ALTO'].head(3) if tot > 0 else pd.DataFrame()
+
+    if len(top_altos) == 0:
+        st.markdown('<div class="empty"><div class="empty-t">Sin alertas ALTO esta semana</div>'
+                    '<div class="empty-s">El panorama semanal es tranquilo.</div></div>',
+                    unsafe_allow_html=True)
+    else:
+        for i, (_, row) in enumerate(top_altos.iterrows()):
+            num = i + 1
+            st.markdown(f"""
+            <div style="display:flex;gap:12px;align-items:flex-start;
+                        padding:12px 0;border-bottom:1px solid #E0D9CE;">
+              <div style="font-family:'Cormorant Garamond',serif;font-size:18px;
+                          font-style:italic;color:#A82020;min-width:18px;
+                          line-height:1.4;flex-shrink:0;">0{num}</div>
+              <div style="flex:1;">
+                <div style="font-size:8px;color:#A8B4C0;text-transform:uppercase;
+                            letter-spacing:0.08em;margin-bottom:4px;">
+                  {row['fuente']} · {row['fecha']}
+                </div>
+                <div style="font-size:12px;font-weight:500;color:#1B2A4A;line-height:1.45;">
+                  {row['titulo']}
+                </div>
+              </div>
+              <div style="font-size:7px;font-weight:700;letter-spacing:0.14em;
+                          text-transform:uppercase;padding:2px 8px;border-radius:100px;
+                          border:1.5px solid #A82020;color:#A82020;
+                          background:rgba(168,32,32,0.08);flex-shrink:0;align-self:center;">
+                ALTO
+              </div>
+            </div>""", unsafe_allow_html=True)
+        for i, (idx, row) in enumerate(top_altos.iterrows()):
+            if st.button(f"Ver noticia {i+1}", key=f"radar_top_{i}", use_container_width=False):
+                open_art(row); st.rerun()
 
     st.markdown('</div>', unsafe_allow_html=True)
 
