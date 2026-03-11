@@ -206,10 +206,18 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 }
 
 /* ── FILTER BUTTONS ────────────────────────────────────────────────────────── */
-.filter-todos button { background: #0F1F3D !important; color: #fff !important; border-color: #0F1F3D !important; border-radius: 8px !important; }
-.filter-alto  button { background: #FEF2F2 !important; color: #B91C1C !important; border-color: #FECACA !important; border-radius: 8px !important; }
-.filter-medio button { background: #FFFBEB !important; color: #92670A !important; border-color: #FDE68A !important; border-radius: 8px !important; }
-.filter-bajo  button { background: #F0FDF4 !important; color: #166534 !important; border-color: #BBF7D0 !important; border-radius: 8px !important; }
+.filter-todos button, .filter-alto button, .filter-medio button, .filter-bajo button {
+    border-radius: 6px !important;
+    padding: 4px 0 !important;
+    font-size: 7px !important;
+    min-height: unset !important;
+    height: auto !important;
+    line-height: 1.2 !important;
+}
+.filter-todos button { background: #0F1F3D !important; color: #fff !important; border-color: #0F1F3D !important; }
+.filter-alto  button { background: #FEF2F2 !important; color: #B91C1C !important; border-color: #FECACA !important; }
+.filter-medio button { background: #FFFBEB !important; color: #92670A !important; border-color: #FDE68A !important; }
+.filter-bajo  button { background: #F0FDF4 !important; color: #166534 !important; border-color: #BBF7D0 !important; }
 
 /* ── SEARCH ────────────────────────────────────────────────────────────────── */
 div[data-baseweb="input"] { background: #fff !important; border: 1.5px solid #E5E2DB !important; border-radius: 10px !important; box-shadow: none !important; }
