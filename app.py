@@ -313,23 +313,46 @@ input { font-family: 'IBM Plex Sans', sans-serif !important; font-size: 13px !im
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  DB
+#  DB — persistencia en GitHub
 # ══════════════════════════════════════════════════════════════════════════════
-def init_db():
-    if not os.path.exists(DB_PATH):
-        with open(DB_PATH, 'w') as f:
-            json.dump({'date': '', 'articles': [], 'history': []}, f)
+GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
+GITHUB_REPO  = st.secrets.get("GITHUB_REPO", "")   # formato: "usuario/repo"
+GITHUB_FILE  = "news_db_v5.json"
+GITHUB_API   = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{GITHUB_FILE}"
+GITHUB_HEADERS = {
+    "Authorization": f"token {GITHUB_TOKEN}",
+    "Accept": "application/vnd.github.v3+json"
+}
 
 def load_db():
+    """Lee la DB desde GitHub. Si falla, devuelve estructura vacía."""
     try:
-        with open(DB_PATH) as f: return json.load(f)
+        r = requests.get(GITHUB_API, headers=GITHUB_HEADERS, timeout=10)
+        if r.status_code == 200:
+            import base64
+            content = base64.b64decode(r.json()['content']).decode('utf-8')
+            return json.loads(content)
+        return {'date': '', 'articles': [], 'history': []}
     except:
         return {'date': '', 'articles': [], 'history': []}
 
 def save_db(data):
-    with open(DB_PATH, 'w') as f: json.dump(data, f)
-
-init_db()
+    """Guarda la DB en GitHub via commit automático."""
+    try:
+        import base64
+        content = base64.b64encode(json.dumps(data, ensure_ascii=False).encode('utf-8')).decode('utf-8')
+        # Obtener SHA del archivo actual (necesario para hacer update)
+        r = requests.get(GITHUB_API, headers=GITHUB_HEADERS, timeout=10)
+        sha = r.json().get('sha', '') if r.status_code == 200 else ''
+        payload = {
+            "message": f"update db {data.get('date', '')}",
+            "content": content,
+        }
+        if sha:
+            payload["sha"] = sha
+        requests.put(GITHUB_API, headers=GITHUB_HEADERS, json=payload, timeout=15)
+    except Exception as e:
+        logging.warning(f"GitHub save_db: {e}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
