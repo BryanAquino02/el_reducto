@@ -865,17 +865,50 @@ elif st.session_state.tab == "RADAR":
     tot    = len(dfs)
     altos  = int((dfs['riesgo'] == 'ALTO').sum())  if tot > 0 else 0
     medios = int((dfs['riesgo'] == 'MEDIO').sum()) if tot > 0 else 0
-    ratio  = altos / tot if tot > 0 else 0
-    diag   = ("Semana de alta tensión"    if ratio > 0.4 else
-              "Semana de tensión moderada" if ratio > 0.2 else
-              "Semana tranquila")
+
+    # Diagnóstico por número absoluto de alertas ALTO
+    if altos >= 10:
+        diag, diag_eye = "Alta tensión", "⚠ Semana crítica"
+        banner_bg, banner_bd = "#FEF2F2", "#FECACA"
+        diag_fg, num_fg, num_lbl_fg = "#B91C1C", "#B91C1C", "#DC2626"
+    elif altos >= 5:
+        diag, diag_eye = "Tensión moderada", "⚡ Semana de alerta"
+        banner_bg, banner_bd = "#FFFBEB", "#FDE68A"
+        diag_fg, num_fg, num_lbl_fg = "#92670A", "#F59E0B", "#D97706"
+    elif altos >= 2:
+        diag, diag_eye = "Actividad leve", "Semana con incidentes"
+        banner_bg, banner_bd = "#FFF7ED", "#FED7AA"
+        diag_fg, num_fg, num_lbl_fg = "#9A3412", "#F97316", "#EA580C"
+    else:
+        diag, diag_eye = "Semana tranquila", "Sin alertas críticas"
+        banner_bg, banner_bd = "#F0FDF4", "#BBF7D0"
+        diag_fg, num_fg, num_lbl_fg = "#166534", "#22C55E", "#16A34A"
 
     st.markdown('<div class="slabel" style="margin-top:18px;">Pulso · esta semana</div>', unsafe_allow_html=True)
     st.markdown(f"""
-    <div class="pulse-card">
-      <div class="pulse-num">{altos}</div>
-      <div class="pulse-lbl">Alertas ALTO esta semana</div>
-      <div class="pulse-diag">{diag}</div>
+    <div style="background:{banner_bg};border:1.5px solid {banner_bd};border-radius:12px;
+                padding:16px;display:flex;align-items:center;
+                justify-content:space-between;margin-bottom:10px;">
+      <div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:{diag_fg};
+                    letter-spacing:0.14em;text-transform:uppercase;margin-bottom:6px;">
+          {diag_eye}
+        </div>
+        <div style="font-family:'Playfair Display',serif;font-size:18px;font-style:italic;
+                    color:{diag_fg};line-height:1.2;">
+          {diag}
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-family:'Playfair Display',serif;font-size:44px;font-weight:700;
+                    color:{num_fg};line-height:1;letter-spacing:-0.03em;">
+          {altos}
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:6.5px;color:{num_lbl_fg};
+                    letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;">
+          alertas alto
+        </div>
+      </div>
     </div>""", unsafe_allow_html=True)
 
     # 3 stat cards
