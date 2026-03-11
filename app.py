@@ -83,8 +83,8 @@ div[data-testid="stRadio"] > div {
 div[data-testid="stRadio"] > div > label {
     flex: 1 !important;
     text-align: center !important;
-    padding: 6px 2px !important;
-    font-size: 7.5px !important;
+    padding: 5px 0 !important;
+    font-size: 7px !important;
     font-weight: 400 !important;
     letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
@@ -482,21 +482,74 @@ def rbar(r):
     return f'<div class="rb rb{r[0].lower()}"></div>'
 
 def news_row(row, key):
-    c1, c2 = st.columns([13, 1], gap="small")
-    with c1:
+    art_id  = hashlib.md5(row['titulo'].encode()).hexdigest()[:12]
+    exp_key = f"exp_{key}"
+    if exp_key not in st.session_state:
+        st.session_state[exp_key] = False
+
+    # fila principal clicable
+    st.markdown(
+        f'<div class="ni">{rbar(row["riesgo"])}'
+        f'<div style="flex:1"><div class="ns">{row["fuente"]} · {row["fecha"]}</div>'
+        f'<div class="nt">{row["titulo"]}</div>{pill(row["riesgo"])}</div>'
+        f'<div class="ni-arrow" style="color:{"#1B2A4A" if st.session_state[exp_key] else "#C8D0D8"};">›</div></div>',
+        unsafe_allow_html=True
+    )
+    col_btn, col_open = st.columns([3, 1], gap="small")
+    with col_btn:
+        if st.button("▸ Ver resumen", key=f"exp_btn_{key}",
+                     help=row['titulo'], use_container_width=True):
+            st.session_state[exp_key] = not st.session_state[exp_key]
+            st.rerun()
+    with col_open:
+        if st.button("↗", key=f"open_{key}", help="Abrir noticia completa",
+                     use_container_width=True):
+            open_art(row); st.rerun()
+
+    # panel expandido
+    if st.session_state[exp_key]:
+        # resumen IA
+        sum_key = f"sum_{art_id}"
+        if sum_key not in st.session_state.summaries:
+            with st.spinner(""):
+                r = groq_call(
+                    f'Resume en 2 oraciones concisas esta noticia minera peruana, sin preamble: "{row["titulo"]}"',
+                    system=GEO_PERSONA, max_tokens=120
+                )
+                st.session_state.summaries[sum_key] = r or row['titulo']
         st.markdown(
-            f'<div class="ni">{rbar(row["riesgo"])}'
-            f'<div style="flex:1"><div class="ns">{row["fuente"]} · {row["fecha"]}</div>'
-            f'<div class="nt">{row["titulo"]}</div>{pill(row["riesgo"])}</div>'
-            f'<div class="ni-arrow">›</div></div>',
+            f'<div class="summary-box" style="margin:0 0 10px 13px;">'
+            f'{st.session_state.summaries[sum_key]}</div>',
             unsafe_allow_html=True
         )
-    with c2:
-        st.write("")  # vertical spacer
-    # invisible full-row button
-    if st.button("", key=key, help=row['titulo'],
-                 use_container_width=True):
-        open_art(row); st.rerun()
+        # botón Opinión IA
+        ck = f"{art_id}_{st.session_state.company}"
+        ia_key = f"ia_btn_{key}"
+        if ck not in st.session_state.impacts:
+            if st.button("✦  Opinión IA sobre " + st.session_state.company,
+                         key=ia_key, use_container_width=False):
+                with st.spinner("Analizando..."):
+                    imp = groq_call(
+                        f'Analiza cómo afecta a {st.session_state.company} en Perú. '
+                        f'Empieza con "POSITIVO:", "NEGATIVO:" o "NEUTRO:". Máx 3 oraciones.\n'
+                        f'Noticia: "{row["titulo"]}"',
+                        system=GEO_PERSONA, max_tokens=200
+                    )
+                    st.session_state.impacts[ck] = imp or "No se pudo generar el análisis."
+                st.rerun()
+        else:
+            txt = st.session_state.impacts[ck]
+            u   = txt.upper()
+            if u.startswith("POSITIVO"):   ic, il = "ai-pos", "▲ IMPACTO POSITIVO"
+            elif u.startswith("NEGATIVO"): ic, il = "ai-neg", "▼ IMPACTO NEGATIVO"
+            else:                          ic, il = "ai-neu", "● IMPACTO NEUTRO"
+            st.markdown(
+                f'<div class="ai-box" style="margin:0 0 12px 13px;">'
+                f'<div class="ai-label">Opinión IA · {st.session_state.company}</div>'
+                f'<div class="ai-impact {ic}">{il}</div>'
+                f'<div class="ai-text">{txt}</div></div>',
+                unsafe_allow_html=True
+            )
 
 def skeleton():
     st.markdown("""
@@ -621,32 +674,54 @@ elif st.session_state.tab == "FEED":
 
     FOPTS = ["TODOS", "ALTO", "MEDIO", "BAJO"]
     fcol  = {"TODOS": "#1B2A4A", "ALTO": "#A82020", "MEDIO": "#C9A84C", "BAJO": "#2A6B42"}
-    fidx  = FOPTS.index(st.session_state.get('feed_f', 'TODOS'))
+    ff    = st.session_state.get('feed_f', 'TODOS')
+    feed  = df if ff == "TODOS" else df[df['riesgo'] == ff]
 
-    # Styled filter buttons
-    cols = st.columns(len(FOPTS), gap="small")
-    for col, opt in zip(cols, FOPTS):
-        with col:
-            active = st.session_state.get('feed_f', 'TODOS') == opt
+    # Fila: label + botón dropdown de filtro
+    btn_style_base = (
+        "border-radius:100px;padding:4px 12px;font-size:8px;font-weight:500;"
+        "letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;"
+        "font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:5px;"
+    )
+    if ff == "TODOS":
+        btn_style = btn_style_base + "background:transparent;border:1px solid #C8D0D8;color:#6B7A8D;"
+        btn_label = "Filtrar ▾"
+    else:
+        color = fcol[ff]
+        btn_style = btn_style_base + f"background:{color};border:1px solid {color};color:#fff;"
+        btn_label = f"{ff} ▾"
+
+    st.markdown(
+        f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
+        f'<div style="font-size:8px;color:#6B7A8D;letter-spacing:0.2em;text-transform:uppercase;">'
+        f'{len(feed)} noticias · {ff}</div>'
+        f'<div id="filter-anchor"></div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+    # Botones de filtro como pills compactos en una fila
+    cols_f = st.columns(4, gap="small")
+    for col_f, opt in zip(cols_f, FOPTS):
+        with col_f:
+            active = ff == opt
             color  = fcol[opt]
-            st.markdown(f"""
-            <div style="text-align:center;">
-              <span style="display:inline-block;padding:5px 0;width:100%;border-radius:100px;
-                border:1.5px solid {''+color+'' if active else '#E0D9CE'};
-                background:{''+color+'' if active else 'transparent'};
-                color:{'#FFF' if active else '#6B7A8D'};
-                font-size:8px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;
-                font-family:'DM Sans',sans-serif;cursor:pointer;">{opt}</span>
-            </div>""", unsafe_allow_html=True)
-            if st.button(opt, key=f"ff_{opt}", use_container_width=True):
+            bg     = color if active else "transparent"
+            border = color if active else "#E0D9CE"
+            txt    = "#fff" if active else "#6B7A8D"
+            st.markdown(
+                f'<div style="text-align:center;">'
+                f'<span style="display:block;padding:4px 2px;border-radius:100px;'
+                f'border:1px solid {border};background:{bg};color:{txt};'
+                f'font-size:7.5px;font-weight:600;letter-spacing:0.1em;'
+                f'text-transform:uppercase;font-family:\'DM Sans\',sans-serif;">{opt}</span>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+            if st.button(opt, key=f"ff_{opt}", use_container_width=True,
+                         help=f"Filtrar por {opt}"):
                 st.session_state['feed_f'] = opt
                 st.rerun()
-
-    ff   = st.session_state.get('feed_f', 'TODOS')
-    feed = df if ff == "TODOS" else df[df['riesgo'] == ff]
-
-    st.markdown(f'<div class="slabel" style="margin-top:14px;">{len(feed)} noticias · {ff}</div>',
-                unsafe_allow_html=True)
 
     if len(feed) == 0:
         st.markdown(f'<div class="empty"><div class="empty-t">Sin noticias {ff.lower()}</div>'
