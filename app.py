@@ -319,8 +319,10 @@ init_db()
 # ══════════════════════════════════════════════════════════════════════════════
 GEO_PERSONA = """Eres una ingeniera geóloga peruana con 18 años de experiencia en minería metálica,
 especializada en conflictos socioambientales en la sierra norte del Perú.
-Conoces el proyecto Conga de IAMGOLD en Cajamarca, la normativa del MINEM, el OEFA
-y la dinámica entre empresas extractivas y comunidades campesinas. Eres directa y técnica."""
+Conoces a fondo la industria minera peruana: el proyecto Conga (Yanacocha/Newmont) en Cajamarca,
+las operaciones de IAMGOLD en el país, la normativa del MINEM, el OEFA
+y la dinámica entre empresas extractivas y comunidades campesinas. Eres directa y técnica.
+Importante: Conga es un proyecto de Yanacocha (Newmont/Buenaventura), no de IAMGOLD."""
 
 def groq_call(prompt, system=None, max_tokens=600):
     msgs = []
@@ -808,9 +810,11 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
     if ck not in st.session_state.impacts:
         with st.spinner("Analizando impacto..."):
             imp = groq_call(
-                f'Eres especialista en el proyecto Conga de {st.session_state.company} en Cajamarca, Perú. '
-                f'Analiza el impacto DIRECTO de esta noticia sobre {st.session_state.company}. '
-                f'Si no involucra directamente, explica si podría afectarle indirectamente. '
+                f'Analiza el impacto DIRECTO de esta noticia sobre la empresa {st.session_state.company} '
+                f'y sus operaciones en Perú. '
+                f'Si no involucra directamente a {st.session_state.company}, explica si podría afectarle '
+                f'indirectamente (regulatorio, reputacional, comunidades, competencia). '
+                f'No confundas proyectos de otras empresas con {st.session_state.company}. '
                 f'Empieza con una palabra: POSITIVO, NEGATIVO o NEUTRO, seguido de dos puntos. Máx 4 oraciones.\n'
                 f'Noticia: "{row["titulo"]}"',
                 system=GEO_PERSONA, max_tokens=300
