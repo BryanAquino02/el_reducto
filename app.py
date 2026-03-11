@@ -138,7 +138,7 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 /* ── SECTION LABEL ────────────────────────────────────────────────────────── */
 .slabel {
     font-size: 8px; font-weight: 400; letter-spacing: 0.22em;
-    text-transform: uppercase; color: #6B7A8D; margin-bottom: 10px;
+    text-transform: uppercase; color: #6B7A8D; margin-bottom: 12px; margin-top: 4px;
     font-family: 'DM Sans', sans-serif;
 }
 
@@ -236,15 +236,15 @@ div[data-testid="stButton"]:has(button p) button {
 .ai-text { font-size: 11px; color: #A8B4C0; line-height: 1.7; }
 
 /* ── RADAR ────────────────────────────────────────────────────────────────── */
-.pulse-card { background: #1B2A4A; border-radius: 20px; padding: 24px 20px; margin-bottom: 14px; text-align: center; }
+.pulse-card { background: #1B2A4A; border-radius: 20px; padding: 28px 20px; margin-bottom: 18px; text-align: center; }
 .pulse-num { font-family: 'Cormorant Garamond', serif !important; font-size: 64px; font-weight: 700; color: #F5F0E8; line-height: 1; letter-spacing: -0.04em; }
-.pulse-lbl { font-size: 8px; color: #8A9AB0; letter-spacing: 0.16em; text-transform: uppercase; margin-top: 6px; }
-.pulse-diag { font-family: 'Cormorant Garamond', serif !important; font-size: 15px; font-style: italic; color: #6B7A8D; margin-top: 6px; }
-.anomaly { background: #FDF0F0; border: 1.5px solid #A82020; border-radius: 12px; padding: 11px 15px; margin-bottom: 16px; }
-.anomaly-lbl { font-size: 7.5px; color: #A82020; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
-.anomaly-txt { font-size: 11px; color: #5A2020; line-height: 1.55; }
-.stat-card { background: #FFF; border-radius: 12px; padding: 11px 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 8px; }
-.stat-lbl { font-size: 7.5px; color: #A8B4C0; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px; }
+.pulse-lbl { font-size: 8px; color: #8A9AB0; letter-spacing: 0.16em; text-transform: uppercase; margin-top: 8px; }
+.pulse-diag { font-family: 'Cormorant Garamond', serif !important; font-size: 15px; font-style: italic; color: #6B7A8D; margin-top: 8px; }
+.anomaly { background: #FDF0F0; border: 1.5px solid #A82020; border-radius: 12px; padding: 14px 16px; margin-bottom: 18px; }
+.anomaly-lbl { font-size: 7.5px; color: #A82020; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+.anomaly-txt { font-size: 11px; color: #5A2020; line-height: 1.65; }
+.stat-card { background: #FFF; border-radius: 12px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 10px; }
+.stat-lbl { font-size: 7.5px; color: #A8B4C0; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
 .stat-val { font-size: 13px; font-weight: 600; color: #1B2A4A; }
 
 /* ── ACERCA ───────────────────────────────────────────────────────────────── */
@@ -252,21 +252,21 @@ div[data-testid="stButton"]:has(button p) button {
 .hero-title em { font-weight: 400; font-style: italic; }
 .hero-sub { font-size: 8.5px; color: #C9A84C; letter-spacing: 0.18em; text-transform: uppercase; }
 .qes-text { font-size: 12.5px; color: #3A4A5A; line-height: 1.8; margin-bottom: 22px; }
-.feature-card { background: #FFF; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; gap: 12px; align-items: flex-start; }
+.feature-card { background: #FFF; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; gap: 12px; align-items: flex-start; }
 .feature-num { font-family: 'Cormorant Garamond', serif !important; font-size: 16px; font-style: italic; color: #C9A84C; min-width: 20px; flex-shrink: 0; line-height: 1.5; }
-.feature-txt { font-size: 11.5px; color: #3A4A5A; line-height: 1.6; }
-.creator-card { background: #1B2A4A; border-radius: 18px; padding: 20px; margin-bottom: 16px; }
-.creator-name { font-family: 'Cormorant Garamond', serif !important; font-size: 22px; font-style: italic; color: #F5F0E8; margin-bottom: 4px; }
-.creator-role { font-size: 8.5px; color: #C9A84C; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 14px; }
-.creator-sep { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 14px; }
-.creator-txt { font-size: 11.5px; color: #A8B4C0; line-height: 1.8; }
-.skill-card { background: #FFF; border-radius: 12px; padding: 11px 13px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-.skill-icon { font-size: 18px; margin-bottom: 5px; }
-.skill-name { font-size: 10.5px; font-weight: 600; color: #1B2A4A; margin-bottom: 3px; }
-.skill-desc { font-size: 9.5px; color: #6B7A8D; line-height: 1.5; }
-.acerca-footer { text-align: center; padding-top: 16px; border-top: 1px solid #E0D9CE; }
+.feature-txt { font-size: 11.5px; color: #3A4A5A; line-height: 1.7; }
+.creator-card { background: #1B2A4A; border-radius: 18px; padding: 22px; margin-bottom: 20px; }
+.creator-name { font-family: 'Cormorant Garamond', serif !important; font-size: 22px; font-style: italic; color: #F5F0E8; margin-bottom: 6px; }
+.creator-role { font-size: 8.5px; color: #C9A84C; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 16px; }
+.creator-sep { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 16px; }
+.creator-txt { font-size: 11.5px; color: #A8B4C0; line-height: 1.9; }
+.skill-card { background: #FFF; border-radius: 12px; padding: 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.skill-icon { font-size: 20px; margin-bottom: 7px; }
+.skill-name { font-size: 10.5px; font-weight: 600; color: #1B2A4A; margin-bottom: 4px; }
+.skill-desc { font-size: 9.5px; color: #6B7A8D; line-height: 1.6; }
+.acerca-footer { text-align: center; padding-top: 20px; margin-top: 8px; border-top: 1px solid #E0D9CE; }
 .acerca-footer-txt { font-size: 8.5px; color: #A8B4C0; letter-spacing: 0.14em; text-transform: uppercase; }
-.acerca-footer-note { font-size: 8px; color: #C8D0D8; margin-top: 4px; }
+.acerca-footer-note { font-size: 8px; color: #C8D0D8; margin-top: 6px; }
 
 /* ── SEARCH INPUT ─────────────────────────────────────────────────────────── */
 div[data-baseweb="input"] { background: #FFF !important; border: 1.5px solid #E0D9CE !important; border-radius: 100px !important; box-shadow: none !important; }
