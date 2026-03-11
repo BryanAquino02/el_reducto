@@ -137,17 +137,19 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
 
 /* ── FEATURED CARD ─────────────────────────────────────────────────────────── */
 .fc { background: #0F1F3D; border-radius: 16px; padding: 20px; margin-bottom: 22px; }
-.fc-meta { font-family: 'IBM Plex Mono', monospace !important; font-size: 8px; color: #4A5A72; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
+.fc-meta { font-family: 'IBM Plex Mono', monospace !important; font-size: 8px; color: #B8C5D6; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 10px; }
 .fc-title { font-family: 'Playfair Display', serif !important; font-size: 19px; font-weight: 700; color: #F5F0E8; line-height: 1.2; margin-bottom: 16px; }
 .fc-title em { font-style: italic; font-weight: 400; }
-.fc-sep { height: 1px; background: rgba(255,255,255,0.07); margin-bottom: 14px; }
+.fc-sep { height: 1px; background: rgba(255,255,255,0.12); margin-bottom: 14px; }
 .fc-stats { display: flex; gap: 20px; margin-bottom: 4px; }
-.fc-sl { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #4A5A72; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
+.fc-sl { font-family: 'IBM Plex Mono', monospace !important; font-size: 7px; color: #8A9AB0; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 3px; }
 .fc-sv { font-family: 'IBM Plex Mono', monospace !important; font-size: 12px; font-weight: 500; color: #F5F0E8; }
 .fc-sv.r { color: #F87171 !important; }
 
 /* Botón abrir noticia dentro del fc */
-.fc-open-btn > div > button {
+.fc-open-btn button,
+.fc-open-btn > div > button,
+.fc-open-btn [data-testid="stBaseButton-secondary"] {
     background: #B8860B !important;
     border: none !important;
     border-radius: 100px !important;
@@ -165,7 +167,9 @@ div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-second
     line-height: 1.4 !important;
     margin-top: 12px !important;
 }
-.fc-open-btn > div > button:hover { background: #A07609 !important; }
+.fc-open-btn button:hover,
+.fc-open-btn > div > button:hover,
+.fc-open-btn [data-testid="stBaseButton-secondary"]:hover { background: #A07609 !important; }
 
 /* ── PILLS ─────────────────────────────────────────────────────────────────── */
 .pill {
@@ -347,18 +351,18 @@ def groq_call(prompt, system=None, max_tokens=600):
 #  FETCH & CLASSIFY
 # ══════════════════════════════════════════════════════════════════════════════
 QUERIES = [
-    "mineria+Cajamarca+conflicto", "mineria+Cajamarca+comunidades",
-    "protesta+minera+Cajamarca",   "huelga+minera+Cajamarca",
-    "Conga+mina+Cajamarca",        "rondas+campesinas+mineria",
-    "IAMGOLD+Peru",                "IAMGOLD+Cajamarca",
-    "Yanacocha+Cajamarca",         "minera+Buenaventura+Peru",
-    "Southern+Copper+Peru",        "conflictos+mineros+Peru",
-    "paro+minero+Peru",            "bloqueo+minero+Peru",
-    "comunidades+mineria+Peru",    "conflicto+socioambiental+Peru",
-    "MINEM+Peru+mineria",          "OEFA+fiscalizacion+mineria",
-    "inversion+minera+Peru",       "concesion+minera+Peru",
-    "mineria+La+Libertad+Peru",    "mineria+Ancash+Peru",
-    "mineria+Apurimac+Peru",       "mineria+Arequipa+Peru",
+    "mineria+metalica+Cajamarca+conflicto", "mineria+metalica+Cajamarca+comunidades",
+    "protesta+minera+Cajamarca",            "huelga+minera+Cajamarca",
+    "mina+oro+Cajamarca+conflicto",         "rondas+campesinas+mineria+metalica",
+    "IAMGOLD+Peru",                         "IAMGOLD+Cajamarca",
+    "Yanacocha+Cajamarca+conflicto",        "Buenaventura+minera+Peru+conflicto",
+    "Southern+Copper+Peru+conflicto",       "conflicto+minero+metalico+Peru",
+    "paro+minero+Peru",                     "bloqueo+minero+Peru",
+    "comunidades+mineria+metalica+Peru",    "conflicto+socioambiental+mineria+Peru",
+    "MINEM+mineria+metalica+Peru",          "OEFA+fiscalizacion+mineria+metalica",
+    "inversion+minera+metalica+Peru",       "concesion+minera+metalica+Peru",
+    "mineria+metalica+La+Libertad+Peru",    "mineria+metalica+Ancash+Peru",
+    "mineria+metalica+Apurimac+Peru",       "mineria+metalica+Arequipa+Peru",
 ]
 
 FUENTE_RANK = {}
