@@ -474,14 +474,39 @@ def classify(df):
     return df
 
 def get_keywords(df, n=6):
-    sw = {'de','la','el','en','y','a','los','del','que','con','por','las','un','una','se','es',
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    import numpy as np
+
+    sw = ['de','la','el','en','y','a','los','del','que','con','por','las','un','una','se','es',
           'al','para','su','sus','como','más','no','este','esta','sobre','entre','fue','han',
           'hay','pero','sin','también','desde','hasta','durante','tiene','pueden','nuevo',
-          'nuevos','tras','ante','según','así','ser'}
-    words = []
-    for t in df['titulo']:
-        words.extend([w for w in re.findall(r'\b[a-záéíóúñ]{4,}\b', t.lower()) if w not in sw])
-    return Counter(words).most_common(n)
+          'nuevos','tras','ante','según','así','ser','minería','minera','minero','mineras',
+          'mineros','perú','peru','proyecto','empresa']
+
+    docs = df['titulo'].tolist()
+    if len(docs) < 2:
+        words = []
+        for t in docs:
+            words.extend(re.findall(r'\b[a-záéíóúñ]{4,}\b', t.lower()))
+        return Counter(words).most_common(n)
+
+    try:
+        vec = TfidfVectorizer(
+            token_pattern=r'\b[a-záéíóúñ]{4,}\b',
+            stop_words=sw,
+            max_features=500,
+            sublinear_tf=True
+        )
+        X = vec.fit_transform(docs)
+        scores = np.asarray(X.sum(axis=0)).flatten()
+        terms  = vec.get_feature_names_out()
+        top_idx = scores.argsort()[::-1][:n]
+        return [(terms[i], float(scores[i])) for i in top_idx]
+    except Exception:
+        words = []
+        for t in docs:
+            words.extend(re.findall(r'\b[a-záéíóúñ]{4,}\b', t.lower()))
+        return Counter(words).most_common(n)
 
 @st.cache_data(ttl=3600)
 def get_news():
