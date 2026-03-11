@@ -539,7 +539,7 @@ def news_row(row, key):
         st.markdown(f'<div style="padding:4px 0;"><span class="pill {pc}">{row["riesgo"]}</span></div>',
                     unsafe_allow_html=True)
     with c2:
-        if st.button("Ver noticia →", key=key, use_container_width=True):
+        if st.button("Ver noticia →", key=key, use_container_width=False):
             open_art(row); st.rerun()
     st.markdown('<div class="ni-divider"></div>', unsafe_allow_html=True)
 
@@ -592,7 +592,7 @@ nav_cols = st.columns(4, gap="small")
 for col, t in zip(nav_cols, NAV):
     with col:
         is_active = (current == t)
-        if st.button(t, key=f"nav_{'a' if is_active else 'i'}_{t}", use_container_width=True):
+        if st.button(t, key=f"nav_{'a' if is_active else 'i'}_{t}", use_container_width=False):
             if t != current:
                 st.session_state.tab = t
                 st.session_state.sel = None
@@ -657,7 +657,7 @@ elif st.session_state.tab == "NOTICIAS":
     st.markdown('<div style="height:18px;"></div>', unsafe_allow_html=True)
 
     # Buscador
-    q = st.text_input("", placeholder="🔍  Buscar por tema, fuente o empresa...",
+    q = st.text_input("Buscar noticias", placeholder="🔍  Buscar por tema, fuente o empresa...",
                       label_visibility="collapsed")
 
     # Filtros: 4 botones nativos
@@ -668,7 +668,7 @@ elif st.session_state.tab == "NOTICIAS":
     for col, opt, cls in zip(fcols, opciones, estilos):
         with col:
             st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
-            if st.button(opt, key=f"fn_{opt}", use_container_width=True):
+            if st.button(opt, key=f"fn_{opt}", use_container_width=False):
                 st.session_state.noticias_filtro = opt
                 st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
@@ -861,7 +861,7 @@ elif st.session_state.tab == "RADAR":
                        zeroline=False, tickfont=dict(size=8)),
             hoverlabel=dict(bgcolor='#0F1F3D', font_color='#F5F0E8', font_size=10),
         )
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        st.plotly_chart(fig, use_container_width=False, config={'displayModeBar': False})
 
     # Resumen IA semanal
     st.markdown('<div class="gold-line"></div>', unsafe_allow_html=True)
