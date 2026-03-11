@@ -381,6 +381,11 @@ def limpiar_titulo(t):
     t = re.sub(r'\s*[\-\u2013\u2014|]\s*[^\-\u2013\u2014|]{1,60}$', '', t)
     return re.sub(r'\s+', ' ', t).strip().lower()
 
+def limpiar_titulo_display(t):
+    """Elimina el sufijo ' - Fuente' que Google News agrega al final del titular."""
+    t = re.sub(r'\s*[\-\u2013\u2014]\s*[\w\s\.]{2,40}$', '', t)
+    return re.sub(r'\s+', ' ', t).strip()
+
 def dedup_por_fuente(articulos):
     grupos = {}
     for art in articulos:
@@ -538,7 +543,7 @@ def news_row(row, key):
         f'<div class="rb" style="background:{rc};"></div>'
         f'<div style="flex:1;">'
         f'<div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
-        f'<div class="nt">{row["titulo"]}</div>'
+        f'<div class="nt">{limpiar_titulo_display(row["titulo"])}</div>'
         f'</div></div>',
         unsafe_allow_html=True
     )
@@ -629,7 +634,7 @@ if st.session_state.tab == "HOY":
                     unsafe_allow_html=True)
     else:
         top = df.iloc[0]
-        l1, l2 = split_title(top['titulo'])
+        l1, l2 = split_title(limpiar_titulo_display(top['titulo']))
         riesgo_color = "r" if top['riesgo'] == "ALTO" else ""
 
         st.markdown(f"""
@@ -719,7 +724,7 @@ elif st.session_state.tab == "DETALLE" and st.session_state.sel is not None:
         st.session_state.sel = None
         st.rerun()
 
-    l1, l2 = split_title(row['titulo'])
+    l1, l2 = split_title(limpiar_titulo_display(row['titulo']))
     st.markdown(f"""
     <div class="ds" style="margin-top:14px;">{row['fuente']} · {row['fecha']}</div>
     <div class="dt">{l1}<br><em>{l2}</em></div>
@@ -793,6 +798,14 @@ elif st.session_state.tab == "RADAR":
               "Semana tranquila")
 
     st.markdown('<div class="slabel" style="margin-top:18px;">Pulso · esta semana</div>', unsafe_allow_html=True)
+
+    col_titulo, col_btn = st.columns([3, 1], gap="small")
+    with col_btn:
+        if st.button("↺ Actualizar", key="radar_refresh"):
+            db = load_db()
+            db['date'] = ''
+            save_db(db)
+            st.rerun()
     st.markdown(f"""
     <div class="pulse-card">
       <div class="pulse-num">{altos}</div>
