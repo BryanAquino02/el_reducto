@@ -67,17 +67,14 @@ st.markdown("""
 .search-icon-btn:hover { background: #E0D9CE; }
 
 /* ── NAV UNDERLINE ────────────────────────────────────────────────────────── */
-.nav-wrap > div[data-testid="stHorizontalBlock"] {
+/* El nav ocupa el 2do bloque horizontal de la página (el 1ro es el topbar badge) */
+div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"]) {
     border-bottom: 1px solid #E0D9CE !important;
     gap: 0 !important;
     padding: 0 !important;
     background: transparent !important;
 }
-.nav-wrap > div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
-    padding: 0 !important;
-    min-width: 0 !important;
-}
-.nav-wrap button {
+div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"]) button {
     background: transparent !important;
     border: none !important;
     border-bottom: 2px solid transparent !important;
@@ -88,27 +85,23 @@ st.markdown("""
     font-weight: 400 !important;
     letter-spacing: 0.1em !important;
     text-transform: uppercase !important;
-    padding: 10px 2px 9px !important;
+    padding: 10px 4px 9px !important;
     width: 100% !important;
     box-shadow: none !important;
-    transition: all 0.15s !important;
-    line-height: 1.1 !important;
+    transition: color 0.15s !important;
+    line-height: 1.2 !important;
     min-height: unset !important;
     height: auto !important;
     margin-bottom: -1px !important;
 }
-.nav-wrap button:hover {
-    color: #6B7A8D !important;
+div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"]) button:hover {
+    color: #1B2A4A !important;
     background: transparent !important;
-    border-bottom-color: transparent !important;
     box-shadow: none !important;
 }
-.nav-active button {
-    color: #1B2A4A !important;
-    font-weight: 600 !important;
-    border-bottom: 2px solid #C9A84C !important;
-    background: transparent !important;
-    box-shadow: none !important;
+/* Tab activo — key contiene "active" => data-testid lo expone via aria-label o lo targeteamos con :focus-visible workaround */
+button[kind="secondary"][data-testid="stBaseButton-secondary"]:is([aria-label*="HOY"],[aria-label*="FEED"],[aria-label*="RADAR"],[aria-label*="ACERCA"]) {
+    color: #A8B4C0 !important;
 }
 
 /* ── GOLD LINE ────────────────────────────────────────────────────────────── */
@@ -152,7 +145,21 @@ st.markdown("""
 .pbd { border: 1.5px solid #4CAF7D; color: #4CAF7D; background: rgba(255,255,255,0.05); }
 
 /* ── NEWS ITEM ────────────────────────────────────────────────────────────── */
-.ni { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid #E0D9CE; align-items: flex-start; }
+.ni { display: flex; gap: 10px; padding: 12px 0 8px; border-bottom: 1px solid #E0D9CE; align-items: flex-start; }
+/* Botón "abrir" invisible flotando sobre el .ni con margin negativo */
+.ni + div[data-testid="stButton"] > button {
+    opacity: 0 !important;
+    margin-top: -58px !important;
+    height: 58px !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    position: relative !important;
+    z-index: 10 !important;
+    display: block !important;
+}
 .rb { width: 3px; border-radius: 4px; align-self: stretch; flex-shrink: 0; min-height: 36px; }
 .rba { background: #A82020; } .rbm { background: #C9A84C; } .rbb { background: #2A6B42; }
 .ns { font-size: 8px; color: #A8B4C0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
@@ -465,14 +472,18 @@ def rbar(r):
     return f'<div class="rb rb{r[0].lower()}"></div>'
 
 def news_row(row, key):
+    rc = {"ALTO": "#A82020", "MEDIO": "#C9A84C", "BAJO": "#2A6B42"}.get(row["riesgo"], "#2A6B42")
+    pc = {"ALTO": "pa", "MEDIO": "pm", "BAJO": "pb"}.get(row["riesgo"], "pb")
     st.markdown(
-        f'<div class="ni">{rbar(row["riesgo"])}'
-        f'<div style="flex:1"><div class="ns">{row["fuente"]} · {row["fecha"]}</div>'
-        f'<div class="nt">{row["titulo"]}</div>{pill(row["riesgo"])}</div>'
-        f'<div class="ni-arrow">›</div></div>',
+        f'<div class="ni">'
+        f'<div class="rb" style="background:{rc};"></div>'
+        f'<div style="flex:1"><div class="ns">{row["fuente"]} &middot; {row["fecha"]}</div>'
+        f'<div class="nt">{row["titulo"]}</div>'
+        f'<span class="pill {pc}">{row["riesgo"]}</span></div>'
+        f'<div class="ni-arrow">&#8250;</div></div>',
         unsafe_allow_html=True
     )
-    if st.button("", key=key, help=row['titulo'], use_container_width=True):
+    if st.button("abrir", key=key, use_container_width=True):
         open_art(row); st.rerun()
 
 def skeleton():
@@ -524,40 +535,40 @@ st.markdown(f"""
       <div class="logo">El Reducto</div>
       <div class="logo-sub">{weekday_es} {today_label} · Lima</div>
     </div>
-    <div class="topbar-right">
-      <span class="search-icon-btn" id="search-trigger">🔍</span>
-      <div class="badge">
-        <span class="badge-dot" style="background:{dot_color};"></span>
-        <span class="badge-txt" style="color:{dot_color};">{alert_count} alertas hoy</span>
-      </div>
+    <div class="badge">
+      <span class="badge-dot" style="background:{dot_color};"></span>
+      <span class="badge-txt" style="color:{dot_color};">{alert_count} alertas hoy</span>
     </div>
   </div>
 </div>""", unsafe_allow_html=True)
 
-# Botón de búsqueda real de Streamlit (invisible, activado por el ícono HTML)
-if st.button("🔍", key="nav_buscar_icon", help="Buscar"):
-    st.session_state.tab = "BUSCAR"
-    st.session_state.sel = None
-    st.rerun()
-
 current = st.session_state.prev_tab if st.session_state.tab == "DETALLE" else st.session_state.tab
 
-# Nav underline con 4 tabs
-st.markdown('<div class="nav-wrap">', unsafe_allow_html=True)
-nav_cols = st.columns(len(NAV), gap="small")
-for col, t in zip(nav_cols, NAV):
+# Nav: 4 tabs + lupa buscar
+nav_cols = st.columns([1,1,1,1,0.5], gap="small")
+nav_items = NAV + ["🔍"]
+for col, t in zip(nav_cols, nav_items):
     with col:
-        is_active = current == t
-        cls = "nav-active" if is_active else "nav-inactive"
-        st.markdown(f'<div class="{cls}">', unsafe_allow_html=True)
-        if st.button(t, key=f"nav_{t}", use_container_width=True):
-            if t != current:
-                st.session_state.tab = t
+        dest = "BUSCAR" if t == "🔍" else t
+        is_active = (current == dest)
+        # key distinto para activo => CSS lo selecciona
+        btn_key = f"nav_active_{t}" if is_active else f"nav_{t}"
+        if st.button(t, key=btn_key, use_container_width=True):
+            if dest != current:
+                st.session_state.tab = dest
                 st.session_state.sel = None
                 st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
 
+# Underline dorado en tab activo via nth-child dinámico
+nav_idx = (nav_items.index(current) + 1) if current in nav_items else           (nav_items.index("🔍") + 1 if st.session_state.tab == "BUSCAR" else 1)
+st.markdown(f"""<style>
+div[data-testid="stHorizontalBlock"]:has(button[data-testid="stBaseButton-secondary"])
+  > div[data-testid="stColumn"]:nth-child({nav_idx}) button {{
+    color: #1B2A4A !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid #C9A84C !important;
+}}
+</style>""", unsafe_allow_html=True)
 st.markdown('<div class="gold-line"></div>', unsafe_allow_html=True)
 
 
