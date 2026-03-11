@@ -284,11 +284,14 @@ input { font-family: 'DM Sans', sans-serif !important; font-size: 13px !importan
 }
 .stButton > button:hover { background: #1B2A4A !important; color: #F5F0E8 !important; border-color: #1B2A4A !important; }
 /* Botón "Abrir noticia →" de la featured card — key=open_top */
-button[data-testid="stBaseButton-secondary"][aria-label="Abrir noticia →"],
-[data-testid="stButton"]:has(button[aria-label="Abrir noticia →"]) button {
+.fc-open-btn button {
     background: #C9A84C !important; border: 1.5px solid #C9A84C !important;
     border-radius: 100px !important; color: #1B2A4A !important;
     font-weight: 700 !important; box-shadow: none !important;
+    letter-spacing: 0.1em !important;
+}
+.fc-open-btn button:hover {
+    background: #D4B55A !important; border-color: #D4B55A !important; color: #1B2A4A !important;
 }
 
 /* ── SKELETON ─────────────────────────────────────────────────────────────── */
@@ -709,8 +712,10 @@ if st.session_state.tab == "HOY":
           </div>
         </div>""", unsafe_allow_html=True)
 
+        st.markdown('<div class="fc-open-btn">', unsafe_allow_html=True)
         if st.button("Abrir noticia →", use_container_width=True, key="open_top"):
             open_art(top); st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="gold-line" style="margin:14px 0;"></div>', unsafe_allow_html=True)
         st.markdown('<div class="slabel">Últimas noticias</div>', unsafe_allow_html=True)
