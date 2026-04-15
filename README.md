@@ -116,10 +116,10 @@ GROQ_KEY = "gsk_..."
 ```
 el-reducto/
 ├── app.py              # Aplicación principal
-├── news_db_v5.json     # Base de datos local (generada automáticamente)
+├── news_db_v5.json     # Base de datos local 
 ├── requirements.txt    # Dependencias
 └── .streamlit/
-    └── secrets.toml    # API keys (no subir a GitHub)
+    └── secrets.toml    # API keys 
 ```
 
 ---
