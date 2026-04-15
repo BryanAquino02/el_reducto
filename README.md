@@ -14,6 +14,8 @@
 
 Pensado para analistas, gestores de riesgo y equipos de relaciones comunitarias que necesitan estar informados sin perder horas filtrando ruido informativo.
 
+Enlace directo a la El Reducto: https://el-reducto.streamlit.app/
+
 ---
 
 ## Funcionalidades
@@ -146,7 +148,7 @@ el-reducto/
 
 **Bryan Perez Aquino**  
 Científico de Datos e IA · ISIL, Lima, Perú  
-[LinkedIn](https://linkedin.com/in/tu-perfil) · [GitHub](https://github.com/tu-usuario)
+[LinkedIn](https://linkedin.com/in/bryanpaquino/) · [GitHub](https://github.com/BryanAquino02)
 
 ---
 
